@@ -33,6 +33,9 @@ export type Materia = {
   descripcion: string;
   profesor: string;
   emoji: string;
+  /** One colour per subject, so the site reads as a set rather than gradient soup. */
+  color: string;
+  colorSoft: string;
   disponible: boolean;
   nota?: string;
 };
@@ -45,6 +48,8 @@ export const MATERIAS: Materia[] = [
       'Conversación desde la primera clase. Para el trabajo, para viajar o para pasar tu nivel.',
     profesor: 'David',
     emoji: '💬',
+    color: '#e0522c',
+    colorSoft: '#ffeee7',
     disponible: true,
   },
   {
@@ -54,6 +59,8 @@ export const MATERIAS: Materia[] = [
       'Aprende tu instrumento a tu ritmo, con audio de alta fidelidad para que se escuche de verdad.',
     profesor: 'David',
     emoji: '🎸',
+    color: '#14897c',
+    colorSoft: '#e2f4f1',
     disponible: true,
   },
   {
@@ -63,6 +70,8 @@ export const MATERIAS: Materia[] = [
       'Desde cero hasta tu primer proyecto funcionando. Sin relleno y sin promesas raras.',
     profesor: 'Daniel',
     emoji: '💻',
+    color: '#5b4bc4',
+    colorSoft: '#eeebfd',
     disponible: true,
   },
   {
@@ -72,6 +81,8 @@ export const MATERIAS: Materia[] = [
       'Acompañamiento profesional para niños y niñas, con una terapista de lenguaje titulada.',
     profesor: 'Elena',
     emoji: '🌱',
+    color: '#c98a10',
+    colorSoft: '#fff4dc',
     disponible: false,
     nota: 'Abrimos cupos pronto',
   },

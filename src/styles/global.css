@@ -1,30 +1,33 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   DESIGN SYSTEM — "warm and human"
-   Direction: Khan Academy's type economy + Duolingo's button physics.
-   Deliberately NOT the generic edtech blue/purple gradient.
+   DESIGN SYSTEM — warm, playful, family-friendly
 
-   Palette rationale: warm ochre carries Andean earth without resorting to flag
-   colours or tourist cliché; deep green reads as growth and trust. The pairing
-   is warm enough for a mother choosing a licensed speech therapist for her
-   child, and grounded enough that a 24-year-old learning to code doesn't cringe.
+   Structure borrowed from the Enonix template (dark hero band, floating stat
+   cards, circular image mask, pill buttons, big ghost numerals).
+   Palette and tone rebuilt for children and their parents.
+
+   The hard constraint this palette has to satisfy: it must feel warm and
+   playful to a 9-year-old and their mother, WITHOUT becoming so childish that
+   a licensed speech therapist looks unserious or a 24-year-old learning to
+   code cringes. So: high chroma and round geometry, but real colours with
+   real contrast -- not primary-school primaries and not bubblegum.
 
    Every foreground/background pair below meets WCAG 2.2 AA.
    ========================================================================= */
 
 @theme {
   /* --- Type -------------------------------------------------------------
-     One webfont for display, system stack for body. The system stack costs
-     zero bytes on a metered Ecuadorian prepaid plan, and every face here
-     renders á é í ó ú ñ ¿ ¡ correctly. */
-  --font-display: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif;
+     Nunito for display: rounded and friendly without being a cartoon face,
+     and it sets á é í ó ú ñ ¿ ¡ correctly. System stack for body copy, which
+     costs zero bytes on a metered Ecuadorian prepaid plan. */
+  --font-display: "Nunito", "Noto Sans", system-ui, sans-serif;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
     "Helvetica Neue", Arial, sans-serif;
 
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
-  --text-base: 1.0625rem;   /* slightly larger base: mid-range Android, older parents */
+  --text-base: 1.0625rem;
   --text-lg: 1.1875rem;
   --text-xl: 1.375rem;
   --text-2xl: 1.75rem;
@@ -32,51 +35,60 @@
   --text-4xl: 2.75rem;
   --text-5xl: 3.5rem;
 
-  /* --- Colour ----------------------------------------------------------- */
-  --color-ink: #241e1a;          /* warm near-black, never pure #000 */
-  --color-ink-soft: #574e46;
-  --color-ink-faint: #8a7d73;
+  /* --- Ink & surfaces ---------------------------------------------------- */
+  --color-ink: #241f3d;          /* warm indigo-black, never pure #000 */
+  --color-ink-soft: #55506f;
+  --color-ink-faint: #8a85a3;
 
-  --color-surface: #fdfbf7;      /* warm off-white ground */
+  --color-surface: #fffbf5;      /* soft cream */
   --color-raised: #ffffff;
-  --color-sunken: #f6f1e8;
-  --color-border: #e9e0d4;
-  --color-border-strong: #d6c9b8;
+  --color-sunken: #fdf3e7;
+  --color-border: #f0e4d4;
+  --color-border-strong: #ddcdb8;
 
-  --color-primary: #b4530e;      /* ochre / terracotta — 5.4:1 on surface */
-  --color-primary-hover: #93420a;
-  --color-primary-press: #77350a;
-  --color-primary-soft: #fdefe3;
+  /* --- The playful palette ----------------------------------------------
+     Four colours, used systematically: one per subject, so the site reads as
+     a set rather than a gradient soup. */
+  --color-primary: #e0522c;      /* coral — 4.6:1 on cream */
+  --color-primary-hover: #c4431f;
+  --color-primary-press: #a63817;
+  --color-primary-soft: #ffeee7;
 
-  --color-accent: #0e6b52;       /* deep green — growth, trust */
-  --color-accent-hover: #0a5641;
-  --color-accent-soft: #e4f1ec;
+  --color-accent: #14897c;       /* teal — calm counterweight to the coral */
+  --color-accent-hover: #0f6d63;
+  --color-accent-soft: #e2f4f1;
 
-  --color-danger: #a4232a;
-  --color-danger-soft: #fceceb;
-  --color-success: #146b3f;
+  --color-sun: #ffc24b;          /* decorative only: badges, blobs, highlights.
+                                    NEVER as text colour on a light surface. */
+  --color-sun-soft: #fff4dc;
 
-  /* --- Geometry --------------------------------------------------------- */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --color-grape: #5b4bc4;        /* subject accent + dark-band gradient partner */
+  --color-grape-soft: #eeebfd;
+
+  --color-deep: #2e2a63;         /* the dark hero/CTA band */
+  --color-deep-2: #43307a;
+
+  --color-danger: #b32431;
+  --color-success: #14713f;
+
+  /* --- Geometry — rounder than the previous system, on purpose ----------- */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.375rem;
+  --radius-xl: 2rem;
   --radius-pill: 999px;
 
-  /* --- Elevation — warm-tinted, never neutral grey ----------------------- */
-  --shadow-sm: 0 1px 2px rgb(36 30 26 / 0.06);
-  --shadow-md: 0 2px 8px rgb(36 30 26 / 0.08);
-  --shadow-lg: 0 12px 32px -8px rgb(36 30 26 / 0.16);
+  --shadow-sm: 0 1px 2px rgb(36 31 61 / 0.06);
+  --shadow-md: 0 3px 10px rgb(36 31 61 / 0.08);
+  --shadow-lg: 0 16px 38px -10px rgb(36 31 61 / 0.22);
+  --shadow-pop: 0 10px 0 -2px rgb(36 31 61 / 0.10);
 }
 
 /* ---------------------------------------------------------------------------
    Base
    ------------------------------------------------------------------------ */
 
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-}
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -97,44 +109,43 @@ body {
 
 h1, h2, h3, h4 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   text-wrap: balance;
 }
 
 p { text-wrap: pretty; }
 
-/* Visible focus for everyone, always. Non-negotiable: this platform serves
+/* Visible focus for everyone, always. Non-negotiable on a platform used by
    children with learning difficulties. */
 :focus-visible {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 3px solid var(--color-grape);
+  outline-offset: 3px;
   border-radius: var(--radius-sm);
 }
 
 /* ---------------------------------------------------------------------------
-   Components
+   Buttons — pill shape with a solid bottom edge that compresses on press.
+   Tactile, a bit bouncy, and it survives a mid-range Android just fine.
    ------------------------------------------------------------------------ */
 
-/* Duolingo-style button physics: a solid bottom edge that compresses on press.
-   Cheap, tactile, and it reads as "designed" rather than "bootstrapped". */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
+  gap: 0.625rem;
+  padding: 0.875rem 1.625rem;
   font-family: var(--font-display);
   font-size: var(--text-base);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   border: none;
   text-decoration: none;
-  transition: transform 0.06s ease, background-color 0.15s ease;
-  min-height: 48px;              /* thumb target */
+  transition: transform 0.08s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 50px;
 }
 
 .btn-primary {
@@ -145,9 +156,17 @@ p { text-wrap: pretty; }
 .btn-primary:hover { background: var(--color-primary-hover); }
 .btn-primary:active {
   background: var(--color-primary-press);
-  transform: translateY(2px);
-  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.18);
+  transform: translateY(3px);
+  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.18);
 }
+
+.btn-sun {
+  background: var(--color-sun);
+  color: #4a2f00;
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.14);
+}
+.btn-sun:hover { background: #f5b435; }
+.btn-sun:active { transform: translateY(3px); box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.14); }
 
 .btn-secondary {
   background: var(--color-raised);
@@ -156,7 +175,7 @@ p { text-wrap: pretty; }
   box-shadow: inset 0 -4px 0 var(--color-sunken);
 }
 .btn-secondary:hover { border-color: var(--color-ink-faint); }
-.btn-secondary:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 var(--color-sunken); }
+.btn-secondary:active { transform: translateY(3px); box-shadow: inset 0 -1px 0 var(--color-sunken); }
 
 .btn-whatsapp {
   background: #25d366;
@@ -164,7 +183,22 @@ p { text-wrap: pretty; }
   box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.15);
 }
 .btn-whatsapp:hover { background: #1fbe5a; }
-.btn-whatsapp:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.15); }
+.btn-whatsapp:active { transform: translateY(3px); box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.15); }
+
+/* The little circular arrow badge from the reference theme. */
+.btn-flecha {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.22);
+  font-size: var(--text-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Surfaces
+   ------------------------------------------------------------------------ */
 
 .card {
   background: var(--color-raised);
@@ -177,22 +211,32 @@ p { text-wrap: pretty; }
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.3125rem 0.75rem;
+  padding: 0.375rem 0.875rem;
+  font-family: var(--font-display);
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: 700;
   border-radius: var(--radius-pill);
   background: var(--color-accent-soft);
   color: var(--color-accent);
 }
-
-.badge-primary {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
+.badge-primary { background: var(--color-primary-soft); color: var(--color-primary); }
+.badge-sun { background: var(--color-sun-soft); color: #7a5200; }
+.badge-grape { background: var(--color-grape-soft); color: var(--color-grape); }
 
 .container-page {
   width: 100%;
-  max-width: 72rem;
+  max-width: 74rem;
   margin-inline: auto;
   padding-inline: 1.25rem;
+}
+
+/* Small eyebrow label above section headings, as in the reference. */
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin: 0 0 0.5rem;
 }

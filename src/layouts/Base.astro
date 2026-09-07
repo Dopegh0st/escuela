@@ -32,7 +32,7 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap"
     />
   </head>
 
@@ -49,7 +49,9 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.
           <a href="/#precio">Precio</a>
         </nav>
 
-        <a class="btn btn-primary btn-sm" href={waLink()}>Escríbenos</a>
+        <a class="btn btn-primary btn-sm" href={waLink()}>
+          Escríbenos <span class="btn-flecha" aria-hidden="true">↗</span>
+        </a>
       </div>
     </header>
 

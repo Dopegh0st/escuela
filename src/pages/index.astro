@@ -1,57 +1,111 @@
 ---
 import Base from '../layouts/Base.astro';
 import {
-  SITE, waLink, MATERIAS, PROFESORES,
+  waLink, MATERIAS, PROFESORES,
   PRECIO_PAQUETE, CLASES_POR_MES, MINUTOS_POR_CLASE,
 } from '../config';
+
+// Floating stat cards, as in the reference theme — but every number here is
+// TRUE. "Máximo 6 por grupo" is a stronger claim to an Ecuadorian parent than
+// "120k+ students" anyway, and it is one we can actually keep.
+const DATOS = [
+  { emoji: '👋', valor: 'Máximo 6', etiqueta: 'por grupo' },
+  { emoji: '⏱️', valor: `${MINUTOS_POR_CLASE} min`, etiqueta: 'cada clase' },
+  { emoji: '🎓', valor: 'Titulados', etiqueta: 'todos los profes' },
+];
+
+const PASOS = [
+  {
+    n: '01',
+    titulo: 'Escríbenos por WhatsApp',
+    texto: 'Nos cuentas qué quieres aprender y desde qué nivel. Te respondemos el mismo día, sin formularios eternos.',
+    color: 'var(--color-primary)',
+  },
+  {
+    n: '02',
+    titulo: 'Escoges tu horario',
+    texto: 'Tú dices qué días y a qué horas te sirve. Si después algo cambia, lo movemos sin problema.',
+    color: 'var(--color-accent)',
+  },
+  {
+    n: '03',
+    titulo: 'Empiezas tu primera clase',
+    texto: 'Entras desde el celular o la computadora. Solo necesitas internet y ganas.',
+    color: 'var(--color-grape)',
+  },
+];
 ---
 
 <Base>
-  <!-- ===================== HERO ===================== -->
+  <!-- ===================== HERO (dark band) ===================== -->
   <section class="hero">
-    <div class="container-page hero-inner">
-      <span class="badge">🇪🇨 Hecho en Ecuador · Precios en dólares</span>
+    <div class="hero-blob hero-blob-1" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob-2" aria-hidden="true"></div>
 
-      <h1>Clases en vivo con profesores que sí te conocen.</h1>
+    <div class="container-page hero-grid">
+      <div class="hero-texto">
+        <span class="hero-badge">🇪🇨 Hecho en Ecuador · Precios en dólares</span>
+        <h1>Aprender puede ser lo mejor de la semana.</h1>
+        <p class="hero-lede">
+          Clases en vivo de inglés, música y programación. Grupos pequeños,
+          profesores con nombre y apellido, y horarios que se acomodan a ti.
+        </p>
 
-      <p class="lede">
-        Inglés, música y programación en clases pequeñas y en vivo. Sin videos
-        pregrabados que nadie termina, sin letra pequeña y sin cobros sorpresa.
-      </p>
+        <div class="hero-cta">
+          <a class="btn btn-sun" href="/cursos/">
+            Ver los cursos <span class="btn-flecha" aria-hidden="true">↗</span>
+          </a>
+          <a class="btn btn-whatsapp" href={waLink()}>Pregunta por WhatsApp</a>
+        </div>
 
-      <div class="hero-cta">
-        <a class="btn btn-primary" href="#precio">Ver precios</a>
-        <a class="btn btn-whatsapp" href={waLink()}>
-          Pregunta por WhatsApp
-        </a>
+        <p class="hero-nota">Sin contrato · Cancelas cuando quieras · Primera conversación gratis</p>
       </div>
 
-      <ul class="hero-proof">
-        <li><strong>{CLASES_POR_MES} clases</strong> al mes</li>
-        <li><strong>{MINUTOS_POR_CLASE} minutos</strong> cada una</li>
-        <li><strong>Sin contrato</strong>, cancelas cuando quieras</li>
-      </ul>
+      <div class="hero-visual">
+        <div class="hero-circulo" aria-hidden="true">
+          <span class="hero-emoji hero-emoji-1">🎸</span>
+          <span class="hero-emoji hero-emoji-2">💬</span>
+          <span class="hero-emoji hero-emoji-3">💻</span>
+          <span class="hero-emoji hero-emoji-4">🌱</span>
+        </div>
+
+        {DATOS.map((d, i) => (
+          <div class:list={['dato', `dato-${i + 1}`]}>
+            <span class="dato-emoji" aria-hidden="true">{d.emoji}</span>
+            <div>
+              <p class="dato-valor">{d.valor}</p>
+              <p class="dato-etiqueta">{d.etiqueta}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   </section>
 
   <!-- ===================== MATERIAS ===================== -->
   <section id="materias" class="container-page section">
-    <h2>¿Qué quieres aprender?</h2>
-    <p class="section-lede">
-      Cada materia la dicta un profesor titulado, no un video ni un bot.
-    </p>
+    <div class="section-cabecera">
+      <p class="eyebrow">Qué enseñamos</p>
+      <h2>Escoge lo que te late</h2>
+      <p class="section-lede">
+        Cada materia la dicta un profesor titulado. Personas, no videos ni bots.
+      </p>
+    </div>
 
     <div class="grid-materias">
       {MATERIAS.map((m) => (
-        <article class:list={['card', 'materia', !m.disponible && 'materia-pronto']}>
+        <article
+          class:list={['materia', !m.disponible && 'materia-pronto']}
+          style={`--c:${m.color}; --cs:${m.colorSoft}`}
+        >
           <span class="materia-emoji" aria-hidden="true">{m.emoji}</span>
           <h3>{m.nombre}</h3>
           <p>{m.descripcion}</p>
           <div class="materia-pie">
             <span class="materia-prof">Con {m.profesor}</span>
             {m.disponible
-              ? <a class="materia-link" href={waLink(`Hola, quiero información sobre las clases de ${m.nombre}.`)}>Pedir información →</a>
-              : <span class="badge badge-primary">{m.nota}</span>}
+              ? <a class="materia-link" href="/cursos/">Ver cursos →</a>
+              : <span class="badge badge-sun">{m.nota}</span>}
           </div>
         </article>
       ))}
@@ -61,37 +115,38 @@ import {
   <!-- ===================== CÓMO FUNCIONA ===================== -->
   <section class="section-alt">
     <div class="container-page section">
-      <h2>Cómo funciona</h2>
-      <ol class="pasos">
-        <li>
-          <span class="paso-num">1</span>
-          <h3>Escríbenos por WhatsApp</h3>
-          <p>Nos cuentas qué quieres aprender y desde qué nivel. Te respondemos el mismo día.</p>
-        </li>
-        <li>
-          <span class="paso-num">2</span>
-          <h3>Agendamos tu horario</h3>
-          <p>Escoges los días y las horas que te sirven. Si algo cambia, lo movemos.</p>
-        </li>
-        <li>
-          <span class="paso-num">3</span>
-          <h3>Empiezas tu primera clase</h3>
-          <p>Entras desde el celular o la computadora. Solo necesitas internet.</p>
-        </li>
-      </ol>
+      <div class="section-cabecera">
+        <p class="eyebrow">Así de simple</p>
+        <h2>Empezar toma tres pasos</h2>
+      </div>
+
+      <div class="pasos">
+        {PASOS.map((p) => (
+          <article class="paso" style={`--c:${p.color}`}>
+            <span class="paso-fantasma" aria-hidden="true">{p.n}</span>
+            <div class="paso-contenido">
+              <h3>{p.titulo}</h3>
+              <p>{p.texto}</p>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   </section>
 
   <!-- ===================== PROFESORES ===================== -->
   <section id="profesores" class="container-page section">
-    <h2>Quiénes te enseñan</h2>
-    <p class="section-lede">
-      Personas reales, con nombre y título. Puedes hablar con ellas antes de inscribirte.
-    </p>
+    <div class="section-cabecera">
+      <p class="eyebrow">El equipo</p>
+      <h2>Quiénes te enseñan</h2>
+      <p class="section-lede">
+        Somos pocos y eso es a propósito. Puedes hablar con ellos antes de inscribirte.
+      </p>
+    </div>
 
     <div class="grid-profes">
-      {PROFESORES.map((p) => (
-        <article class="card profe">
+      {PROFESORES.map((p, i) => (
+        <article class="profe" style={`--c:${['var(--color-primary)','var(--color-grape)','var(--color-accent)'][i % 3]}`}>
           <div class="profe-foto" aria-hidden="true">{p.nombre.charAt(0)}</div>
           <h3>{p.nombre}</h3>
           <p class="profe-cred">{p.credencial}</p>
@@ -104,12 +159,15 @@ import {
   <!-- ===================== PRECIO ===================== -->
   <section id="precio" class="section-alt">
     <div class="container-page section">
-      <h2>Un solo precio, sin sorpresas</h2>
-      <p class="section-lede">
-        La mayoría de academias no publica sus precios. Nosotros sí.
-      </p>
+      <div class="section-cabecera">
+        <p class="eyebrow">Precio</p>
+        <h2>Un solo precio, sin sorpresas</h2>
+        <p class="section-lede">
+          La mayoría de academias esconde el precio detrás de un formulario. Nosotros no.
+        </p>
+      </div>
 
-      <div class="precio-card card">
+      <div class="precio-card">
         <span class="badge badge-primary">Paquete mensual</span>
         <p class="precio-monto">
           <span class="precio-sim">$</span>{PRECIO_PAQUETE}
@@ -117,249 +175,308 @@ import {
         </p>
         <ul class="precio-lista">
           <li>{CLASES_POR_MES} clases en vivo de {MINUTOS_POR_CLASE} minutos</li>
-          <li>Profesor titulado, siempre la misma persona</li>
+          <li>Grupos de máximo 6 personas</li>
+          <li>Siempre el mismo profesor</li>
           <li>Horario que tú escoges</li>
           <li>Materiales incluidos</li>
           <li>Sin contrato ni permanencia</li>
         </ul>
-        <a class="btn btn-primary precio-btn" href={waLink('Hola, quiero inscribirme en el paquete mensual.')}>
-          Quiero empezar
+        <a class="btn btn-primary ancho" href={waLink('Hola, quiero inscribirme en el paquete mensual.')}>
+          Quiero empezar <span class="btn-flecha" aria-hidden="true">↗</span>
         </a>
-        <p class="precio-nota">
-          ¿Prefieres pagar por transferencia? También se puede. Escríbenos.
-        </p>
+        <p class="precio-nota">¿Prefieres pagar por transferencia? También se puede.</p>
       </div>
     </div>
   </section>
 
   <!-- ===================== FAQ ===================== -->
   <section class="container-page section">
-    <h2>Preguntas frecuentes</h2>
+    <div class="section-cabecera">
+      <p class="eyebrow">Dudas</p>
+      <h2>Preguntas frecuentes</h2>
+    </div>
+
     <div class="faq">
       <details>
         <summary>¿Cuántos datos consume una clase?</summary>
-        <p>
-          Una clase de {MINUTOS_POR_CLASE} minutos usa cerca de 350&nbsp;MB en calidad
-          estándar. Si tu plan es limitado, puedes bajar la calidad y consumir mucho menos.
-        </p>
+        <p>Una clase de {MINUTOS_POR_CLASE} minutos usa cerca de 350&nbsp;MB en calidad estándar. Si tu plan es limitado, puedes bajar la calidad y consumir mucho menos.</p>
       </details>
       <details>
         <summary>¿Necesito computadora?</summary>
-        <p>
-          No. Las clases funcionan desde el celular. Para programación sí recomendamos
-          una computadora, aunque puedes empezar sin ella.
-        </p>
+        <p>No. Las clases funcionan desde el celular. Para programación sí recomendamos una computadora, aunque puedes empezar sin ella.</p>
       </details>
       <details>
         <summary>¿Puedo cancelar cuando quiera?</summary>
-        <p>
-          Sí. El paquete es mensual y no tiene permanencia. Si no quieres renovar,
-          nos avisas antes de que termine el mes.
-        </p>
+        <p>Sí. El paquete es mensual y no tiene permanencia. Si no quieres renovar, nos avisas antes de que termine el mes.</p>
       </details>
       <details>
         <summary>¿Las clases son grabadas o en vivo?</summary>
-        <p>
-          En vivo, siempre. Creemos que se aprende hablando con alguien, no viendo
-          un video que nadie termina.
-        </p>
+        <p>En vivo, siempre. Se aprende hablando con alguien, no viendo un video que nadie termina.</p>
       </details>
       <details>
-        <summary>¿Y si mi hijo o hija necesita terapia de lenguaje?</summary>
-        <p>
-          Elena es terapista de lenguaje titulada y estamos abriendo cupos pronto.
-          Escríbenos por WhatsApp y te avisamos apenas estén disponibles.
-        </p>
+        <summary>¿Y si mi hijo o hija necesita apoyo especializado?</summary>
+        <p>Elena es terapista de lenguaje titulada y estamos abriendo cupos pronto. Escríbenos por WhatsApp y te avisamos apenas estén disponibles.</p>
       </details>
     </div>
   </section>
 
-  <!-- ===================== CTA FINAL ===================== -->
+  <!-- ===================== CTA FINAL (dark band) ===================== -->
   <section class="cta-final">
-    <div class="container-page">
+    <div class="cta-blob" aria-hidden="true"></div>
+    <div class="container-page cta-inner">
       <h2>¿Empezamos?</h2>
-      <p>Cuéntanos qué quieres aprender. Te respondemos hoy mismo.</p>
-      <a class="btn btn-whatsapp" href={waLink()}>Escríbenos por WhatsApp</a>
+      <p>Cuéntanos qué quieres aprender. Te respondemos hoy mismo, sin compromiso.</p>
+      <a class="btn btn-sun" href={waLink()}>
+        Escríbenos por WhatsApp <span class="btn-flecha" aria-hidden="true">↗</span>
+      </a>
     </div>
   </section>
 </Base>
 
 <style>
-  .section { padding-block: 4rem; }
-  .section-alt { background: var(--color-sunken); border-block: 1px solid var(--color-border); }
+  .section { padding-block: 4.5rem; }
+  .section-alt { background: var(--color-sunken); }
+  .section-cabecera { margin-bottom: 2.75rem; max-width: 46ch; }
+  h2 { font-size: var(--text-3xl); margin: 0 0 0.5rem; }
+  .section-lede { color: var(--color-ink-soft); font-size: var(--text-lg); margin: 0; }
 
-  h2 {
-    font-size: var(--text-3xl);
-    margin-bottom: 0.5rem;
-  }
-  .section-lede {
-    color: var(--color-ink-soft);
-    font-size: var(--text-lg);
-    margin-bottom: 2.5rem;
-    max-width: 44ch;
-  }
-
-  /* ---- Hero ---- */
+  /* ---- Hero: dark band ---- */
   .hero {
-    background:
-      radial-gradient(ellipse 80% 60% at 50% -10%, var(--color-primary-soft), transparent 70%),
-      var(--color-surface);
-    padding-block: 3.5rem 4rem;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(150deg, var(--color-deep) 0%, var(--color-deep-2) 100%);
+    color: #fff;
+    padding-block: 3.5rem 4.5rem;
   }
-  .hero-inner { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; }
-  .hero h1 {
-    font-size: var(--text-4xl);
-    max-width: 18ch;
-    margin: 0;
+  .hero-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.35;
+    pointer-events: none;
   }
-  .lede {
-    font-size: var(--text-lg);
-    color: var(--color-ink-soft);
-    max-width: 52ch;
-    margin: 0;
-  }
-  .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
-  .hero-proof {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.75rem;
-    list-style: none;
-    padding: 0;
-    margin: 1.25rem 0 0;
-    color: var(--color-ink-soft);
-    font-size: var(--text-sm);
-  }
-  .hero-proof strong { color: var(--color-ink); }
+  .hero-blob-1 { width: 26rem; height: 26rem; background: var(--color-primary); top: -8rem; right: -6rem; }
+  .hero-blob-2 { width: 20rem; height: 20rem; background: var(--color-accent); bottom: -8rem; left: -5rem; }
 
-  @media (min-width: 768px) {
-    .hero { padding-block: 5.5rem 6rem; }
+  .hero-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: rgb(255 255 255 / 0.14);
+    border: 1px solid rgb(255 255 255 / 0.2);
+    padding: 0.4375rem 0.9375rem;
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+  }
+  .hero h1 { font-size: var(--text-4xl); margin: 0 0 1rem; max-width: 16ch; color: #fff; }
+  .hero-lede { font-size: var(--text-lg); color: #cfc9ea; max-width: 46ch; margin: 0 0 1.75rem; }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .hero-nota { font-size: var(--text-sm); color: #a79fd0; margin: 1.25rem 0 0; }
+
+  /* ---- Hero visual: circular mask + floating stat cards ---- */
+  .hero-visual { position: relative; display: grid; place-items: center; min-height: 21rem; }
+  .hero-circulo {
+    position: relative;
+    width: min(19rem, 78vw);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.22), transparent 55%),
+      linear-gradient(140deg, var(--color-sun), var(--color-primary));
+    box-shadow: 0 20px 60px -18px rgb(0 0 0 / 0.5);
+  }
+  .hero-emoji { position: absolute; font-size: 2.75rem; filter: drop-shadow(0 3px 8px rgb(0 0 0 / 0.28)); }
+  .hero-emoji-1 { top: 20%; left: 24%; }
+  .hero-emoji-2 { top: 26%; right: 20%; }
+  .hero-emoji-3 { bottom: 24%; left: 20%; }
+  .hero-emoji-4 { bottom: 20%; right: 25%; }
+
+  .dato {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: #fff;
+    color: var(--color-ink);
+    padding: 0.75rem 1.125rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    white-space: nowrap;
+  }
+  .dato-emoji { font-size: 1.5rem; }
+  .dato-valor { font-family: var(--font-display); font-weight: 800; font-size: var(--text-base); margin: 0; line-height: 1.1; }
+  .dato-etiqueta { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0; }
+  .dato-1 { top: 2%; right: 0; }
+  .dato-2 { bottom: 16%; left: -4%; }
+  .dato-3 { bottom: 0; right: 4%; }
+
+  @media (min-width: 900px) {
+    .hero { padding-block: 5rem 6.5rem; }
     .hero h1 { font-size: var(--text-5xl); }
+    .hero-grid { grid-template-columns: 1.1fr 1fr; gap: 2rem; }
   }
 
   /* ---- Materias ---- */
-  .grid-materias {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  .materia { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-  .materia h3 { font-size: var(--text-xl); margin: 0; }
-  .materia p { color: var(--color-ink-soft); margin: 0; flex: 1; }
-  .materia-emoji { font-size: 2rem; line-height: 1; }
-  .materia-pronto { opacity: 0.85; border-style: dashed; }
-  .materia-pie {
+  .grid-materias { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  .materia {
+    background: var(--color-raised);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.625rem;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-top: 0.75rem;
-    padding-top: 0.875rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .materia:hover { transform: translateY(-4px); border-color: var(--c); box-shadow: var(--shadow-lg); }
+  .materia-emoji {
+    display: grid; place-items: center;
+    width: 3.25rem; height: 3.25rem;
+    border-radius: var(--radius-md);
+    background: var(--cs);
+    font-size: 1.75rem;
+    margin-bottom: 0.375rem;
+  }
+  .materia h3 { font-size: var(--text-xl); margin: 0; color: var(--c); }
+  .materia p { color: var(--color-ink-soft); margin: 0; flex: 1; font-size: var(--text-sm); }
+  .materia-pronto { border-style: dashed; }
+  .materia-pie {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; flex-wrap: wrap;
+    margin-top: 0.75rem; padding-top: 0.875rem;
     border-top: 1px solid var(--color-border);
   }
   .materia-prof { font-size: var(--text-sm); color: var(--color-ink-faint); }
-  .materia-link { font-weight: 600; color: var(--color-primary); text-decoration: none; font-size: var(--text-sm); }
+  .materia-link { font-weight: 700; color: var(--c); text-decoration: none; font-size: var(--text-sm); font-family: var(--font-display); }
   .materia-link:hover { text-decoration: underline; }
-
   @media (min-width: 640px) { .grid-materias { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 1024px) { .grid-materias { grid-template-columns: repeat(4, 1fr); } }
 
-  /* ---- Pasos ---- */
-  .pasos {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  /* ---- Pasos: big ghost numerals ---- */
+  .pasos { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  .paso {
+    position: relative;
+    background: var(--color-raised);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    overflow: hidden;
   }
-  .pasos h3 { font-size: var(--text-lg); margin: 0.75rem 0 0.25rem; }
-  .pasos p { color: var(--color-ink-soft); margin: 0; }
-  .paso-num {
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: var(--radius-pill);
-    background: var(--color-primary);
-    color: #fff;
+  .paso-fantasma {
+    position: absolute;
+    top: -0.75rem; right: 0.5rem;
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: var(--text-lg);
+    font-size: 5.5rem;
+    line-height: 1;
+    color: var(--c);
+    opacity: 0.13;
   }
-  @media (min-width: 768px) { .pasos { grid-template-columns: repeat(3, 1fr); gap: 2.5rem; } }
+  .paso-contenido { position: relative; }
+  .paso h3 { font-size: var(--text-lg); margin: 0 0 0.375rem; color: var(--c); }
+  .paso p { color: var(--color-ink-soft); margin: 0; font-size: var(--text-sm); }
+  @media (min-width: 860px) { .pasos { grid-template-columns: repeat(3, 1fr); } }
 
   /* ---- Profesores ---- */
-  .grid-profes { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-  .profe { padding: 1.75rem; }
+  .grid-profes { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  .profe {
+    background: var(--color-raised);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+  }
   .profe h3 { font-size: var(--text-xl); margin: 0 0 0.125rem; }
   .profe-foto {
-    width: 4rem;
-    height: 4rem;
+    width: 4.25rem; height: 4.25rem;
     border-radius: var(--radius-pill);
-    background: var(--color-accent-soft);
-    color: var(--color-accent);
-    display: grid;
-    place-items: center;
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: var(--text-2xl);
+    background: var(--c);
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-2xl);
     margin-bottom: 1rem;
   }
-  .profe-cred { color: var(--color-accent); font-weight: 600; font-size: var(--text-sm); margin: 0 0 0.75rem; }
-  .profe-bio { color: var(--color-ink-soft); margin: 0; }
+  .profe-cred { color: var(--c); font-weight: 700; font-size: var(--text-sm); margin: 0 0 0.75rem; font-family: var(--font-display); }
+  .profe-bio { color: var(--color-ink-soft); margin: 0; font-size: var(--text-sm); }
   @media (min-width: 768px) { .grid-profes { grid-template-columns: repeat(3, 1fr); } }
 
   /* ---- Precio ---- */
-  .precio-card { max-width: 30rem; padding: 2rem; }
+  .precio-card {
+    max-width: 31rem;
+    background: var(--color-raised);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.25rem;
+    box-shadow: var(--shadow-md);
+  }
   .precio-monto {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 4rem;
-    line-height: 1;
-    margin: 1rem 0 1.5rem;
-    letter-spacing: -0.04em;
+    font-family: var(--font-display); font-weight: 800;
+    font-size: 4.25rem; line-height: 1;
+    margin: 1rem 0 1.5rem; letter-spacing: -0.04em;
+    color: var(--color-primary);
   }
   .precio-sim { font-size: var(--text-2xl); vertical-align: super; margin-right: 0.125rem; }
-  .precio-per { font-size: var(--text-lg); font-weight: 500; color: var(--color-ink-faint); letter-spacing: 0; }
+  .precio-per { font-size: var(--text-lg); font-weight: 700; color: var(--color-ink-faint); letter-spacing: 0; }
   .precio-lista { list-style: none; padding: 0; margin: 0 0 1.75rem; display: grid; gap: 0.625rem; }
-  .precio-lista li { padding-left: 1.75rem; position: relative; color: var(--color-ink-soft); }
+  .precio-lista li { padding-left: 1.875rem; position: relative; color: var(--color-ink-soft); }
   .precio-lista li::before {
     content: '✓';
-    position: absolute;
-    left: 0;
+    position: absolute; left: 0; top: -0.0625rem;
+    width: 1.25rem; height: 1.25rem;
+    display: grid; place-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
     color: var(--color-accent);
-    font-weight: 800;
+    font-size: 0.6875rem; font-weight: 800;
   }
-  .precio-btn { width: 100%; }
+  .ancho { width: 100%; }
   .precio-nota { font-size: var(--text-sm); color: var(--color-ink-faint); margin: 1rem 0 0; text-align: center; }
 
   /* ---- FAQ ---- */
-  .faq { display: grid; gap: 0.75rem; max-width: 46rem; }
+  .faq { display: grid; gap: 0.75rem; max-width: 48rem; }
   .faq details {
     background: var(--color-raised);
-    border: 1px solid var(--color-border);
+    border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 1.125rem 1.375rem;
   }
+  .faq details[open] { border-color: var(--color-border-strong); }
   .faq summary {
-    font-family: var(--font-display);
-    font-weight: 700;
-    cursor: pointer;
-    list-style: none;
+    font-family: var(--font-display); font-weight: 800;
+    cursor: pointer; list-style: none;
+    display: flex; justify-content: space-between; gap: 1rem;
   }
   .faq summary::-webkit-details-marker { display: none; }
-  .faq summary::after { content: ' +'; color: var(--color-primary); }
-  .faq details[open] summary::after { content: ' −'; }
+  .faq summary::after { content: '+'; color: var(--color-primary); font-size: var(--text-xl); line-height: 1; }
+  .faq details[open] summary::after { content: '−'; }
   .faq p { color: var(--color-ink-soft); margin: 0.75rem 0 0; }
 
-  /* ---- CTA final ---- */
+  /* ---- CTA final (dark band) ---- */
   .cta-final {
-    background: var(--color-ink);
-    color: var(--color-surface);
-    padding-block: 4rem;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(150deg, var(--color-deep) 0%, var(--color-deep-2) 100%);
+    color: #fff;
+    padding-block: 4.5rem;
     text-align: center;
   }
+  .cta-blob {
+    position: absolute;
+    width: 24rem; height: 24rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+    filter: blur(80px);
+    opacity: 0.3;
+    top: -10rem; left: 50%;
+    transform: translateX(-50%);
+  }
+  .cta-inner { position: relative; }
   .cta-final h2 { color: #fff; }
-  .cta-final p { color: #c9bdb2; margin: 0 0 1.75rem; }
+  .cta-final p { color: #cfc9ea; margin: 0 0 1.75rem; }
 </style>
