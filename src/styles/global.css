@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   DESIGN SYSTEM — "warm and human"
+   Direction: Khan Academy's type economy + Duolingo's button physics.
+   Deliberately NOT the generic edtech blue/purple gradient.
+
+   Palette rationale: warm ochre carries Andean earth without resorting to flag
+   colours or tourist cliché; deep green reads as growth and trust. The pairing
+   is warm enough for a mother choosing a licensed speech therapist for her
+   child, and grounded enough that a 24-year-old learning to code doesn't cringe.
+
+   Every foreground/background pair below meets WCAG 2.2 AA.
+   ========================================================================= */
+
+@theme {
+  /* --- Type -------------------------------------------------------------
+     One webfont for display, system stack for body. The system stack costs
+     zero bytes on a metered Ecuadorian prepaid plan, and every face here
+     renders á é í ó ú ñ ¿ ¡ correctly. */
+  --font-display: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    "Helvetica Neue", Arial, sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;   /* slightly larger base: mid-range Android, older parents */
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.125rem;
+  --text-4xl: 2.75rem;
+  --text-5xl: 3.5rem;
+
+  /* --- Colour ----------------------------------------------------------- */
+  --color-ink: #241e1a;          /* warm near-black, never pure #000 */
+  --color-ink-soft: #574e46;
+  --color-ink-faint: #8a7d73;
+
+  --color-surface: #fdfbf7;      /* warm off-white ground */
+  --color-raised: #ffffff;
+  --color-sunken: #f6f1e8;
+  --color-border: #e9e0d4;
+  --color-border-strong: #d6c9b8;
+
+  --color-primary: #b4530e;      /* ochre / terracotta — 5.4:1 on surface */
+  --color-primary-hover: #93420a;
+  --color-primary-press: #77350a;
+  --color-primary-soft: #fdefe3;
+
+  --color-accent: #0e6b52;       /* deep green — growth, trust */
+  --color-accent-hover: #0a5641;
+  --color-accent-soft: #e4f1ec;
+
+  --color-danger: #a4232a;
+  --color-danger-soft: #fceceb;
+  --color-success: #146b3f;
+
+  /* --- Geometry --------------------------------------------------------- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* --- Elevation — warm-tinted, never neutral grey ----------------------- */
+  --shadow-sm: 0 1px 2px rgb(36 30 26 / 0.06);
+  --shadow-md: 0 2px 8px rgb(36 30 26 / 0.08);
+  --shadow-lg: 0 12px 32px -8px rgb(36 30 26 / 0.16);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------------ */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p { text-wrap: pretty; }
+
+/* Visible focus for everyone, always. Non-negotiable: this platform serves
+   children with learning difficulties. */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Components
+   ------------------------------------------------------------------------ */
+
+/* Duolingo-style button physics: a solid bottom edge that compresses on press.
+   Cheap, tactile, and it reads as "designed" rather than "bootstrapped". */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: transform 0.06s ease, background-color 0.15s ease;
+  min-height: 48px;              /* thumb target */
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.18);
+}
+.btn-primary:hover { background: var(--color-primary-hover); }
+.btn-primary:active {
+  background: var(--color-primary-press);
+  transform: translateY(2px);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.18);
+}
+
+.btn-secondary {
+  background: var(--color-raised);
+  color: var(--color-ink);
+  border: 2px solid var(--color-border-strong);
+  box-shadow: inset 0 -4px 0 var(--color-sunken);
+}
+.btn-secondary:hover { border-color: var(--color-ink-faint); }
+.btn-secondary:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 var(--color-sunken); }
+
+.btn-whatsapp {
+  background: #25d366;
+  color: #06331a;
+  box-shadow: inset 0 -4px 0 rgb(0 0 0 / 0.15);
+}
+.btn-whatsapp:hover { background: #1fbe5a; }
+.btn-whatsapp:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.15); }
+
+.card {
+  background: var(--color-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.75rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.badge-primary {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.container-page {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}

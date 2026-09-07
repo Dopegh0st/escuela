@@ -1,0 +1,156 @@
+---
+import '../styles/global.css';
+import { SITE, waLink } from '../config';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = SITE.description } = Astro.props;
+const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
+---
+
+<!doctype html>
+<html lang="es-EC">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={Astro.url.href} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_EC" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+
+    <!-- Two weights only. Every extra weight is real money on a metered
+         Ecuadorian prepaid plan. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap"
+    />
+  </head>
+
+  <body>
+    <a href="#contenido" class="skip">Saltar al contenido</a>
+
+    <header class="site-header">
+      <div class="container-page header-inner">
+        <a href="/" class="brand">{SITE.name}</a>
+
+        <nav aria-label="Principal" class="nav">
+          <a href="/#materias">Clases</a>
+          <a href="/#profesores">Profesores</a>
+          <a href="/#precio">Precio</a>
+        </nav>
+
+        <a class="btn btn-primary btn-sm" href={waLink()}>Escríbenos</a>
+      </div>
+    </header>
+
+    <main id="contenido">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container-page footer-inner">
+        <div>
+          <p class="footer-brand">{SITE.name}</p>
+          <p class="footer-note">Clases en vivo desde Ecuador · Precios en dólares</p>
+        </div>
+        <nav aria-label="Pie de página" class="footer-nav">
+          <a href="/legal/privacidad">Privacidad</a>
+          <a href="/legal/terminos">Términos</a>
+          <a href={waLink()}>WhatsApp</a>
+        </nav>
+      </div>
+    </footer>
+
+    <style>
+      .skip {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        background: var(--color-ink);
+        color: #fff;
+        padding: 0.75rem 1.25rem;
+        z-index: 100;
+        border-radius: 0 0 var(--radius-md) 0;
+      }
+      .skip:focus { left: 0; }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--color-border);
+      }
+      .header-inner {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        height: 68px;
+      }
+      .brand {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: var(--text-xl);
+        color: var(--color-ink);
+        text-decoration: none;
+        letter-spacing: -0.03em;
+      }
+      .nav {
+        display: none;
+        gap: 1.75rem;
+        margin-inline: auto;
+      }
+      .nav a {
+        color: var(--color-ink-soft);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .nav a:hover { color: var(--color-primary); }
+      .btn-sm {
+        padding: 0.625rem 1.125rem;
+        font-size: var(--text-sm);
+        min-height: 42px;
+        margin-left: auto;
+      }
+      @media (min-width: 768px) {
+        .nav { display: flex; }
+        .btn-sm { margin-left: 0; }
+      }
+
+      .site-footer {
+        margin-top: 5rem;
+        border-top: 1px solid var(--color-border);
+        background: var(--color-sunken);
+        padding-block: 2.5rem;
+      }
+      .footer-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        justify-content: space-between;
+      }
+      .footer-brand {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: var(--text-lg);
+      }
+      .footer-note { color: var(--color-ink-soft); font-size: var(--text-sm); }
+      .footer-nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+      .footer-nav a { color: var(--color-ink-soft); font-size: var(--text-sm); }
+      @media (min-width: 640px) {
+        .footer-inner { flex-direction: row; align-items: center; }
+      }
+    </style>
+  </body>
+</html>

@@ -1,0 +1,365 @@
+---
+import Base from '../layouts/Base.astro';
+import {
+  SITE, waLink, MATERIAS, PROFESORES,
+  PRECIO_PAQUETE, CLASES_POR_MES, MINUTOS_POR_CLASE,
+} from '../config';
+---
+
+<Base>
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="container-page hero-inner">
+      <span class="badge">🇪🇨 Hecho en Ecuador · Precios en dólares</span>
+
+      <h1>Clases en vivo con profesores que sí te conocen.</h1>
+
+      <p class="lede">
+        Inglés, música y programación en clases pequeñas y en vivo. Sin videos
+        pregrabados que nadie termina, sin letra pequeña y sin cobros sorpresa.
+      </p>
+
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#precio">Ver precios</a>
+        <a class="btn btn-whatsapp" href={waLink()}>
+          Pregunta por WhatsApp
+        </a>
+      </div>
+
+      <ul class="hero-proof">
+        <li><strong>{CLASES_POR_MES} clases</strong> al mes</li>
+        <li><strong>{MINUTOS_POR_CLASE} minutos</strong> cada una</li>
+        <li><strong>Sin contrato</strong>, cancelas cuando quieras</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== MATERIAS ===================== -->
+  <section id="materias" class="container-page section">
+    <h2>¿Qué quieres aprender?</h2>
+    <p class="section-lede">
+      Cada materia la dicta un profesor titulado, no un video ni un bot.
+    </p>
+
+    <div class="grid-materias">
+      {MATERIAS.map((m) => (
+        <article class:list={['card', 'materia', !m.disponible && 'materia-pronto']}>
+          <span class="materia-emoji" aria-hidden="true">{m.emoji}</span>
+          <h3>{m.nombre}</h3>
+          <p>{m.descripcion}</p>
+          <div class="materia-pie">
+            <span class="materia-prof">Con {m.profesor}</span>
+            {m.disponible
+              ? <a class="materia-link" href={waLink(`Hola, quiero información sobre las clases de ${m.nombre}.`)}>Pedir información →</a>
+              : <span class="badge badge-primary">{m.nota}</span>}
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- ===================== CÓMO FUNCIONA ===================== -->
+  <section class="section-alt">
+    <div class="container-page section">
+      <h2>Cómo funciona</h2>
+      <ol class="pasos">
+        <li>
+          <span class="paso-num">1</span>
+          <h3>Escríbenos por WhatsApp</h3>
+          <p>Nos cuentas qué quieres aprender y desde qué nivel. Te respondemos el mismo día.</p>
+        </li>
+        <li>
+          <span class="paso-num">2</span>
+          <h3>Agendamos tu horario</h3>
+          <p>Escoges los días y las horas que te sirven. Si algo cambia, lo movemos.</p>
+        </li>
+        <li>
+          <span class="paso-num">3</span>
+          <h3>Empiezas tu primera clase</h3>
+          <p>Entras desde el celular o la computadora. Solo necesitas internet.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===================== PROFESORES ===================== -->
+  <section id="profesores" class="container-page section">
+    <h2>Quiénes te enseñan</h2>
+    <p class="section-lede">
+      Personas reales, con nombre y título. Puedes hablar con ellas antes de inscribirte.
+    </p>
+
+    <div class="grid-profes">
+      {PROFESORES.map((p) => (
+        <article class="card profe">
+          <div class="profe-foto" aria-hidden="true">{p.nombre.charAt(0)}</div>
+          <h3>{p.nombre}</h3>
+          <p class="profe-cred">{p.credencial}</p>
+          <p class="profe-bio">{p.bio}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- ===================== PRECIO ===================== -->
+  <section id="precio" class="section-alt">
+    <div class="container-page section">
+      <h2>Un solo precio, sin sorpresas</h2>
+      <p class="section-lede">
+        La mayoría de academias no publica sus precios. Nosotros sí.
+      </p>
+
+      <div class="precio-card card">
+        <span class="badge badge-primary">Paquete mensual</span>
+        <p class="precio-monto">
+          <span class="precio-sim">$</span>{PRECIO_PAQUETE}
+          <span class="precio-per">/ mes</span>
+        </p>
+        <ul class="precio-lista">
+          <li>{CLASES_POR_MES} clases en vivo de {MINUTOS_POR_CLASE} minutos</li>
+          <li>Profesor titulado, siempre la misma persona</li>
+          <li>Horario que tú escoges</li>
+          <li>Materiales incluidos</li>
+          <li>Sin contrato ni permanencia</li>
+        </ul>
+        <a class="btn btn-primary precio-btn" href={waLink('Hola, quiero inscribirme en el paquete mensual.')}>
+          Quiero empezar
+        </a>
+        <p class="precio-nota">
+          ¿Prefieres pagar por transferencia? También se puede. Escríbenos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FAQ ===================== -->
+  <section class="container-page section">
+    <h2>Preguntas frecuentes</h2>
+    <div class="faq">
+      <details>
+        <summary>¿Cuántos datos consume una clase?</summary>
+        <p>
+          Una clase de {MINUTOS_POR_CLASE} minutos usa cerca de 350&nbsp;MB en calidad
+          estándar. Si tu plan es limitado, puedes bajar la calidad y consumir mucho menos.
+        </p>
+      </details>
+      <details>
+        <summary>¿Necesito computadora?</summary>
+        <p>
+          No. Las clases funcionan desde el celular. Para programación sí recomendamos
+          una computadora, aunque puedes empezar sin ella.
+        </p>
+      </details>
+      <details>
+        <summary>¿Puedo cancelar cuando quiera?</summary>
+        <p>
+          Sí. El paquete es mensual y no tiene permanencia. Si no quieres renovar,
+          nos avisas antes de que termine el mes.
+        </p>
+      </details>
+      <details>
+        <summary>¿Las clases son grabadas o en vivo?</summary>
+        <p>
+          En vivo, siempre. Creemos que se aprende hablando con alguien, no viendo
+          un video que nadie termina.
+        </p>
+      </details>
+      <details>
+        <summary>¿Y si mi hijo o hija necesita terapia de lenguaje?</summary>
+        <p>
+          Elena es terapista de lenguaje titulada y estamos abriendo cupos pronto.
+          Escríbenos por WhatsApp y te avisamos apenas estén disponibles.
+        </p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===================== CTA FINAL ===================== -->
+  <section class="cta-final">
+    <div class="container-page">
+      <h2>¿Empezamos?</h2>
+      <p>Cuéntanos qué quieres aprender. Te respondemos hoy mismo.</p>
+      <a class="btn btn-whatsapp" href={waLink()}>Escríbenos por WhatsApp</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .section { padding-block: 4rem; }
+  .section-alt { background: var(--color-sunken); border-block: 1px solid var(--color-border); }
+
+  h2 {
+    font-size: var(--text-3xl);
+    margin-bottom: 0.5rem;
+  }
+  .section-lede {
+    color: var(--color-ink-soft);
+    font-size: var(--text-lg);
+    margin-bottom: 2.5rem;
+    max-width: 44ch;
+  }
+
+  /* ---- Hero ---- */
+  .hero {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, var(--color-primary-soft), transparent 70%),
+      var(--color-surface);
+    padding-block: 3.5rem 4rem;
+  }
+  .hero-inner { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+  .hero h1 {
+    font-size: var(--text-4xl);
+    max-width: 18ch;
+    margin: 0;
+  }
+  .lede {
+    font-size: var(--text-lg);
+    color: var(--color-ink-soft);
+    max-width: 52ch;
+    margin: 0;
+  }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
+  .hero-proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.75rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.25rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+  }
+  .hero-proof strong { color: var(--color-ink); }
+
+  @media (min-width: 768px) {
+    .hero { padding-block: 5.5rem 6rem; }
+    .hero h1 { font-size: var(--text-5xl); }
+  }
+
+  /* ---- Materias ---- */
+  .grid-materias {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .materia { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .materia h3 { font-size: var(--text-xl); margin: 0; }
+  .materia p { color: var(--color-ink-soft); margin: 0; flex: 1; }
+  .materia-emoji { font-size: 2rem; line-height: 1; }
+  .materia-pronto { opacity: 0.85; border-style: dashed; }
+  .materia-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .materia-prof { font-size: var(--text-sm); color: var(--color-ink-faint); }
+  .materia-link { font-weight: 600; color: var(--color-primary); text-decoration: none; font-size: var(--text-sm); }
+  .materia-link:hover { text-decoration: underline; }
+
+  @media (min-width: 640px) { .grid-materias { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .grid-materias { grid-template-columns: repeat(4, 1fr); } }
+
+  /* ---- Pasos ---- */
+  .pasos {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .pasos h3 { font-size: var(--text-lg); margin: 0.75rem 0 0.25rem; }
+  .pasos p { color: var(--color-ink-soft); margin: 0; }
+  .paso-num {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: #fff;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: var(--text-lg);
+  }
+  @media (min-width: 768px) { .pasos { grid-template-columns: repeat(3, 1fr); gap: 2.5rem; } }
+
+  /* ---- Profesores ---- */
+  .grid-profes { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .profe { padding: 1.75rem; }
+  .profe h3 { font-size: var(--text-xl); margin: 0 0 0.125rem; }
+  .profe-foto {
+    width: 4rem;
+    height: 4rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: var(--text-2xl);
+    margin-bottom: 1rem;
+  }
+  .profe-cred { color: var(--color-accent); font-weight: 600; font-size: var(--text-sm); margin: 0 0 0.75rem; }
+  .profe-bio { color: var(--color-ink-soft); margin: 0; }
+  @media (min-width: 768px) { .grid-profes { grid-template-columns: repeat(3, 1fr); } }
+
+  /* ---- Precio ---- */
+  .precio-card { max-width: 30rem; padding: 2rem; }
+  .precio-monto {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 4rem;
+    line-height: 1;
+    margin: 1rem 0 1.5rem;
+    letter-spacing: -0.04em;
+  }
+  .precio-sim { font-size: var(--text-2xl); vertical-align: super; margin-right: 0.125rem; }
+  .precio-per { font-size: var(--text-lg); font-weight: 500; color: var(--color-ink-faint); letter-spacing: 0; }
+  .precio-lista { list-style: none; padding: 0; margin: 0 0 1.75rem; display: grid; gap: 0.625rem; }
+  .precio-lista li { padding-left: 1.75rem; position: relative; color: var(--color-ink-soft); }
+  .precio-lista li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--color-accent);
+    font-weight: 800;
+  }
+  .precio-btn { width: 100%; }
+  .precio-nota { font-size: var(--text-sm); color: var(--color-ink-faint); margin: 1rem 0 0; text-align: center; }
+
+  /* ---- FAQ ---- */
+  .faq { display: grid; gap: 0.75rem; max-width: 46rem; }
+  .faq details {
+    background: var(--color-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.125rem 1.375rem;
+  }
+  .faq summary {
+    font-family: var(--font-display);
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: ' +'; color: var(--color-primary); }
+  .faq details[open] summary::after { content: ' −'; }
+  .faq p { color: var(--color-ink-soft); margin: 0.75rem 0 0; }
+
+  /* ---- CTA final ---- */
+  .cta-final {
+    background: var(--color-ink);
+    color: var(--color-surface);
+    padding-block: 4rem;
+    text-align: center;
+  }
+  .cta-final h2 { color: #fff; }
+  .cta-final p { color: #c9bdb2; margin: 0 0 1.75rem; }
+</style>
