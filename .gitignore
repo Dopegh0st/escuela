@@ -26,6 +26,10 @@ Thumbs.db
 .vscode/
 .idea/
 
-# local QA artifacts
+# local QA artifacts - throwaway screenshots from browser checks.
+# Real site imagery belongs in src/assets/, which is tracked.
 .playwright-mcp/
-home-*.png
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp

@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import { Image } from 'astro:assets';
+import heroImg from '../assets/hero.png';
 import {
   waLink, MATERIAS, PROFESORES,
   PRECIO_PAQUETE, CLASES_POR_MES, MINUTOS_POR_CLASE, MINUTOS_PRUEBA,
@@ -62,11 +64,16 @@ const PASOS = [
       </div>
 
       <div class="hero-visual">
-        <div class="hero-circulo" aria-hidden="true">
-          <span class="hero-emoji hero-emoji-1">🎸</span>
-          <span class="hero-emoji hero-emoji-2">💬</span>
-          <span class="hero-emoji hero-emoji-3">💻</span>
-          <span class="hero-emoji hero-emoji-4">🌱</span>
+        <div class="hero-circulo">
+          <Image
+            src={heroImg}
+            alt="Ilustración de un estudiante sonriendo frente a su computadora, con una guitarra apoyada al lado"
+            widths={[380, 640, 760]}
+            sizes="(min-width: 900px) 380px, min(78vw, 304px)"
+            loading="eager"
+            fetchpriority="high"
+            class="hero-img"
+          />
         </div>
 
         {DATOS.map((d, i) => (
@@ -331,21 +338,26 @@ const PASOS = [
 
   /* ---- Hero visual: circular mask + floating stat cards ---- */
   .hero-visual { position: relative; display: grid; place-items: center; min-height: 21rem; }
+  /* The illustration's own cream ground fills the disc, so the circle reads as a
+     warm light plate against the dark indigo band. Verified before shipping that
+     an inscribed circle clips only empty background, never the artwork. */
   .hero-circulo {
     position: relative;
     width: min(19rem, 78vw);
     aspect-ratio: 1;
     border-radius: 50%;
-    background:
-      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.22), transparent 55%),
-      linear-gradient(140deg, var(--color-sun), var(--color-primary));
-    box-shadow: 0 20px 60px -18px rgb(0 0 0 / 0.5);
+    overflow: hidden;
+    background: var(--color-surface);
+    box-shadow:
+      0 0 0 10px rgb(255 255 255 / 0.07),
+      0 24px 64px -18px rgb(0 0 0 / 0.55);
   }
-  .hero-emoji { position: absolute; font-size: 2.75rem; filter: drop-shadow(0 3px 8px rgb(0 0 0 / 0.28)); }
-  .hero-emoji-1 { top: 20%; left: 24%; }
-  .hero-emoji-2 { top: 26%; right: 20%; }
-  .hero-emoji-3 { bottom: 24%; left: 20%; }
-  .hero-emoji-4 { bottom: 20%; right: 25%; }
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 
   .dato {
     position: absolute;
