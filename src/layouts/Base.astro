@@ -58,8 +58,9 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.
 
         <nav aria-label="Principal" class="nav">
           <a href="/cursos/">Cursos</a>
-          <a href="/#profesores">Profesores</a>
-          <a href="/#precio">Precio</a>
+          <a href="/profesores/">Profesores</a>
+          <a href="/talleres/">Talleres</a>
+          <a href="/blog/">Blog</a>
         </nav>
 
         <a class="btn btn-primary btn-sm" href={waLink()}>
@@ -79,6 +80,9 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.
           <p class="footer-note">Clases en vivo desde Ecuador · Precios en dólares</p>
         </div>
         <nav aria-label="Pie de página" class="footer-nav">
+          <a href="/cursos/">Cursos</a>
+          <a href="/talleres/">Talleres</a>
+          <a href="/blog/">Blog</a>
           <a href="/legal/privacidad">Privacidad</a>
           <a href="/legal/terminos">Términos</a>
           <a href={waLink()}>WhatsApp</a>
@@ -147,7 +151,7 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.
       }
       .nav {
         display: none;
-        gap: 1.75rem;
+        gap: 1.5rem;
         margin-inline: auto;
       }
       .nav a {

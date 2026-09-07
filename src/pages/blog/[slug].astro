@@ -1,0 +1,181 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import CtaFinal from '../../components/CtaFinal.astro';
+import { SITE } from '../../config';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => data.publicado);
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const d = post.data;
+const { Content } = await render(post);
+
+const CAT_LABEL: Record<string, string> = {
+  ingles: 'Inglés',
+  musica: 'Música',
+  programacion: 'Programación',
+  'apoyo-escolar': 'Apoyo escolar',
+  consejos: 'Consejos',
+};
+
+const fmt = (x: Date) =>
+  x.toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const autor = (await getCollection('profesores')).find((p) => p.data.nombre === d.autor);
+
+const otros = (await getCollection('blog', ({ data }) => data.publicado))
+  .filter((p) => p.id !== post.id)
+  .sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf())
+  .slice(0, 3);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: d.titulo,
+  description: d.resumen,
+  inLanguage: 'es-EC',
+  datePublished: d.fecha.toISOString(),
+  dateModified: (d.actualizado ?? d.fecha).toISOString(),
+  author: { '@type': 'Person', name: d.autor },
+  publisher: { '@type': 'EducationalOrganization', name: SITE.name },
+};
+---
+
+<Base title={d.titulo} description={d.resumen}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <article>
+    <header class="post-hero" style={`--c:${d.color}`}>
+      <div class="container-page">
+        <nav class="miga" aria-label="Migas de pan">
+          <a href="/blog/">Blog</a> <span aria-hidden="true">/</span>
+          <span>{CAT_LABEL[d.categoria]}</span>
+        </nav>
+        <h1>{d.titulo}</h1>
+        <p class="resumen">{d.resumen}</p>
+        <div class="post-meta">
+          <span class="autor-chip">{d.autor.charAt(0)}</span>
+          <div>
+            <p class="autor-nombre">Por {d.autor}</p>
+            <p class="autor-fecha">
+              <time datetime={d.fecha.toISOString()}>{fmt(d.fecha)}</time>
+              · {d.minutosLectura} min de lectura
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container-page cuerpo">
+      <div class="prosa">
+        <Content />
+      </div>
+
+      {autor && (
+        <aside class="autor-card" style={`--c:${autor.data.color}`}>
+          <div class="autor-card-foto" aria-hidden="true">{autor.data.nombre.charAt(0)}</div>
+          <div>
+            <p class="autor-card-nombre">{autor.data.nombre}</p>
+            <p class="autor-card-titular">{autor.data.titular}</p>
+            <p class="autor-card-bio">{autor.data.resumen}</p>
+            <a href={`/profesores/${autor.id}/`} class="autor-card-link">Ver su perfil →</a>
+          </div>
+        </aside>
+      )}
+    </div>
+
+    {otros.length > 0 && (
+      <section class="section-alt">
+        <div class="container-page mas">
+          <h2 class="animate-on-scroll">Otras cosas que escribimos</h2>
+          <div class="grid-mas">
+            {otros.map((o, i) => (
+              <a href={`/blog/${o.id}/`} class:list={['mini', 'animate-on-scroll', `delay-${i + 1}`]} style={`--c:${o.data.color}`}>
+                <span class="mini-emoji" aria-hidden="true">{o.data.emoji}</span>
+                <div>
+                  <h3>{o.data.titulo}</h3>
+                  <p>{o.data.minutosLectura} min · Por {o.data.autor}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+  </article>
+
+  <CtaFinal />
+</Base>
+
+<style>
+  .post-hero {
+    background: linear-gradient(160deg,
+      color-mix(in srgb, var(--c) 14%, var(--color-surface)),
+      var(--color-surface));
+    padding-block: 2.5rem 3rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .miga { font-size: var(--text-sm); color: var(--color-ink-faint); margin-bottom: 0.875rem; }
+  .miga a { color: var(--c); text-decoration: none; font-weight: 600; }
+  .miga span { margin-inline: 0.25rem; }
+
+  h1 { font-size: var(--text-3xl); margin: 0 0 0.875rem; max-width: 22ch; }
+  @media (min-width: 768px) { h1 { font-size: var(--text-4xl); } }
+  .resumen { font-size: var(--text-lg); color: var(--color-ink-soft); margin: 0 0 1.75rem; max-width: 54ch; }
+
+  .post-meta { display: flex; align-items: center; gap: 0.75rem; }
+  .autor-chip {
+    width: 2.75rem; height: 2.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--c); color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-lg);
+  }
+  .autor-nombre { font-weight: 700; margin: 0; font-family: var(--font-display); }
+  .autor-fecha { font-size: var(--text-sm); color: var(--color-ink-faint); margin: 0; }
+
+  .cuerpo { padding-block: 3rem; }
+
+  .autor-card {
+    display: flex; gap: 1.25rem;
+    margin-top: 3rem;
+    padding: 1.75rem;
+    background: var(--color-sunken);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    max-width: 68ch;
+  }
+  .autor-card-foto {
+    width: 4rem; height: 4rem; flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--c); color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-xl);
+  }
+  .autor-card-nombre { font-family: var(--font-display); font-weight: 800; font-size: var(--text-lg); margin: 0; }
+  .autor-card-titular { color: var(--c); font-weight: 700; font-size: var(--text-sm); margin: 0 0 0.5rem; }
+  .autor-card-bio { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 0.75rem; }
+  .autor-card-link { color: var(--c); font-weight: 700; text-decoration: none; font-size: var(--text-sm); }
+  .autor-card-link:hover { text-decoration: underline; }
+
+  .mas { padding-block: 3.5rem; }
+  .mas h2 { font-size: var(--text-2xl); margin: 0 0 1.5rem; }
+  .grid-mas { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 768px) { .grid-mas { grid-template-columns: repeat(3, 1fr); } }
+  .mini {
+    display: flex; gap: 0.875rem; align-items: flex-start;
+    background: var(--color-raised);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    text-decoration: none; color: inherit;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .mini:hover { transform: translateY(-3px); border-color: var(--c); }
+  .mini-emoji { font-size: 1.75rem; }
+  .mini h3 { font-size: var(--text-base); margin: 0 0 0.25rem; line-height: 1.3; }
+  .mini p { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0; }
+</style>

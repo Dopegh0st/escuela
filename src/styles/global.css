@@ -288,3 +288,64 @@ p { text-wrap: pretty; }
   color: var(--color-primary);
   margin: 0 0 0.5rem;
 }
+
+/* ---------------------------------------------------------------------------
+   Article prose — shared by blog posts, teacher profiles and taller pages so
+   the long-form voice is identical everywhere.
+   ------------------------------------------------------------------------ */
+
+.prosa { max-width: 68ch; }
+.prosa > :first-child { margin-top: 0; }
+.prosa h2 {
+  font-size: var(--text-2xl);
+  margin: 2.5rem 0 0.875rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+.prosa h2:first-child { padding-top: 0; border-top: none; }
+.prosa h3 { font-size: var(--text-xl); margin: 2rem 0 0.625rem; }
+.prosa p { margin: 0 0 1.125rem; font-size: var(--text-lg); color: var(--color-ink-soft); }
+.prosa strong { color: var(--color-ink); font-weight: 700; }
+.prosa ul, .prosa ol { margin: 0 0 1.5rem; padding-left: 0; list-style: none; }
+.prosa li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: 0.625rem;
+  font-size: var(--text-lg);
+  color: var(--color-ink-soft);
+}
+.prosa li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+}
+.prosa a { color: var(--color-primary); font-weight: 600; }
+.prosa blockquote {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid var(--color-sun);
+  background: var(--color-sun-soft);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.prosa blockquote p:last-child { margin-bottom: 0; }
+
+/* Shared page header used by the index pages. */
+.cabecera-pagina {
+  background:
+    radial-gradient(ellipse 70% 60% at 20% -20%, var(--color-primary-soft), transparent 70%),
+    var(--color-surface);
+  padding-block: 3rem 2.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.cabecera-pagina h1 { font-size: var(--text-4xl); margin: 0 0 0.75rem; }
+.cabecera-pagina .lede {
+  color: var(--color-ink-soft);
+  font-size: var(--text-lg);
+  max-width: 58ch;
+  margin: 0;
+}

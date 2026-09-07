@@ -1,0 +1,52 @@
+---
+import { waLink } from '../config';
+
+interface Props {
+  titulo?: string;
+  texto?: string;
+  mensaje?: string;
+}
+
+const {
+  titulo = '¿Empezamos?',
+  texto = 'Cuéntanos qué quieres aprender. Te respondemos hoy mismo, sin compromiso.',
+  mensaje,
+} = Astro.props;
+---
+
+<section class="cta-final">
+  <div class="cta-blob" aria-hidden="true"></div>
+  <div class="container-page cta-inner animate-on-scroll">
+    <h2>{titulo}</h2>
+    <p>{texto}</p>
+    <a class="btn btn-sun" href={mensaje ? waLink(mensaje) : waLink()}>
+      Escríbenos por WhatsApp <span class="btn-flecha" aria-hidden="true">↗</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .cta-final {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(150deg, var(--color-deep) 0%, var(--color-deep-2) 100%);
+    color: #fff;
+    padding-block: 4.5rem;
+    text-align: center;
+  }
+  .cta-blob {
+    position: absolute;
+    width: 24rem;
+    height: 24rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+    filter: blur(80px);
+    opacity: 0.3;
+    top: -10rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .cta-inner { position: relative; }
+  .cta-final h2 { color: #fff; font-size: var(--text-3xl); margin: 0 0 0.5rem; }
+  .cta-final p { color: #cfc9ea; margin: 0 auto 1.75rem; max-width: 46ch; }
+</style>
