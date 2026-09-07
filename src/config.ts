@@ -27,6 +27,20 @@ export const PRECIO_PAQUETE = 120;
 export const CLASES_POR_MES = 4;
 export const MINUTOS_POR_CLASE = 40; // 40 min keeps Zoom's free tier invisible
 
+/**
+ * Free first class, 1-on-1 with the teacher the visitor picks.
+ *
+ * Set to 25 minutes rather than a full 40 ON PURPOSE, and it is one number to
+ * change if you disagree. Teacher hours are the binding constraint of this whole
+ * business: three teachers deliver roughly 258 billable hours/month, which caps
+ * the live rail at 18-64 students. Free 1:1 trials consume exactly that scarce
+ * resource. At a 30% trial-to-paying conversion, every paying student costs
+ * ~3 trials -- 2 hours of unpaid teacher time at 40 min, versus ~1.25 at 25 min.
+ * 25 min is also what Preply and italki settled on, and it is long enough to
+ * build trust without becoming a free lesson people simply collect.
+ */
+export const MINUTOS_PRUEBA = 25;
+
 export type Materia = {
   slug: string;
   nombre: string;
@@ -93,6 +107,8 @@ export type Profesor = {
   materia: string;
   bio: string;
   credencial: string;
+  /** Whether this teacher can be booked for the free first class right now. */
+  disponible: boolean;
 };
 
 /** TODO: replace bios and add real photos — real faces are the strongest trust lever. */
@@ -102,17 +118,22 @@ export const PROFESORES: Profesor[] = [
     materia: 'Inglés y música',
     bio: 'Enseña inglés y música. Cree que se aprende hablando y tocando, no memorizando.',
     credencial: 'Profesor de inglés y música',
+    disponible: true,
   },
   {
     nombre: 'Daniel',
     materia: 'Programación y computación',
     bio: 'Enseña programación y computación desde lo básico hasta proyectos reales.',
     credencial: 'Profesor de programación y computación',
+    disponible: true,
   },
   {
     nombre: 'Elena',
     materia: 'Terapia de lenguaje',
     bio: 'Terapista de lenguaje titulada. Trabaja con niños y niñas y con sus familias.',
     credencial: 'Terapista de lenguaje titulada',
+    // Not bookable yet: her vertical is a regulated health service pending
+    // ACESS registration. See Plan/agents/10-compliance-costed-path.md
+    disponible: false,
   },
 ];

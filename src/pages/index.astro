@@ -2,15 +2,15 @@
 import Base from '../layouts/Base.astro';
 import {
   waLink, MATERIAS, PROFESORES,
-  PRECIO_PAQUETE, CLASES_POR_MES, MINUTOS_POR_CLASE,
+  PRECIO_PAQUETE, CLASES_POR_MES, MINUTOS_POR_CLASE, MINUTOS_PRUEBA,
 } from '../config';
 
 // Floating stat cards, as in the reference theme — but every number here is
 // TRUE. "Máximo 6 por grupo" is a stronger claim to an Ecuadorian parent than
 // "120k+ students" anyway, and it is one we can actually keep.
 const DATOS = [
+  { emoji: '🎁', valor: 'Primera clase', etiqueta: 'gratis, 1 a 1' },
   { emoji: '👋', valor: 'Máximo 6', etiqueta: 'por grupo' },
-  { emoji: '⏱️', valor: `${MINUTOS_POR_CLASE} min`, etiqueta: 'cada clase' },
   { emoji: '🎓', valor: 'Titulados', etiqueta: 'todos los profes' },
 ];
 
@@ -45,20 +45,20 @@ const PASOS = [
     <div class="container-page hero-grid">
       <div class="hero-texto">
         <span class="hero-badge">🇪🇨 Hecho en Ecuador · Precios en dólares</span>
-        <h1>Aprender puede ser lo mejor de la semana.</h1>
+        <h1>Tu primera clase es gratis.</h1>
         <p class="hero-lede">
-          Clases en vivo de inglés, música y programación. Grupos pequeños,
-          profesores con nombre y apellido, y horarios que se acomodan a ti.
+          Una clase de {MINUTOS_PRUEBA} minutos, tú solo con el profesor que escojas.
+          Sin tarjeta, sin compromiso. Si te gusta, sigues; si no, quedamos como amigos.
         </p>
 
         <div class="hero-cta">
-          <a class="btn btn-sun" href="/cursos/">
-            Ver los cursos <span class="btn-flecha" aria-hidden="true">↗</span>
+          <a class="btn btn-sun" href="#prueba">
+            Escoger profesor <span class="btn-flecha" aria-hidden="true">↗</span>
           </a>
           <a class="btn btn-whatsapp" href={waLink()}>Pregunta por WhatsApp</a>
         </div>
 
-        <p class="hero-nota">Sin contrato · Cancelas cuando quieras · Primera conversación gratis</p>
+        <p class="hero-nota">Inglés · Música · Programación — clases en vivo, grupos pequeños</p>
       </div>
 
       <div class="hero-visual">
@@ -109,6 +109,53 @@ const PASOS = [
           </div>
         </article>
       ))}
+    </div>
+  </section>
+
+  <!-- ===================== PRUEBA GRATIS ===================== -->
+  <section id="prueba" class="prueba">
+    <div class="container-page">
+      <div class="section-cabecera prueba-cabecera">
+        <p class="eyebrow">Sin costo, sin tarjeta</p>
+        <h2>Escoge con quién quieres tu primera clase</h2>
+        <p class="section-lede">
+          {MINUTOS_PRUEBA} minutos, tú solo con el profesor. Conversan, ven en qué
+          nivel estás y armas un plan. Si no te convence, no pasa nada.
+        </p>
+      </div>
+
+      <div class="grid-prueba">
+        {PROFESORES.filter((p) => p.disponible).map((p, i) => (
+          <article class="prof-prueba" style={`--c:${['var(--color-primary)','var(--color-grape)'][i % 2]}`}>
+            <div class="pp-foto" aria-hidden="true">{p.nombre.charAt(0)}</div>
+            <h3>{p.nombre}</h3>
+            <p class="pp-materia">{p.materia}</p>
+            <a
+              class="btn btn-primary pp-btn"
+              href={waLink(`Hola, quiero mi primera clase gratis de ${MINUTOS_PRUEBA} minutos con ${p.nombre}.`)}
+            >
+              Clase gratis con {p.nombre}
+            </a>
+          </article>
+        ))}
+
+        <article class="prof-prueba prof-pronto">
+          <div class="pp-foto pp-foto-pronto" aria-hidden="true">🌱</div>
+          <h3>Elena</h3>
+          <p class="pp-materia">Terapia de lenguaje</p>
+          <span class="badge badge-sun pp-badge">Abrimos cupos pronto</span>
+          <a
+            class="pp-espera"
+            href={waLink('Hola, quiero que me avisen cuando Elena abra cupos.')}
+          >
+            Avísenme cuando abra →
+          </a>
+        </article>
+      </div>
+
+      <p class="prueba-nota">
+        Una clase gratis por persona. Coordinamos día y hora por WhatsApp.
+      </p>
     </div>
   </section>
 
@@ -180,9 +227,10 @@ const PASOS = [
           <li>Horario que tú escoges</li>
           <li>Materiales incluidos</li>
           <li>Sin contrato ni permanencia</li>
+          <li><strong>La primera clase va por nuestra cuenta</strong></li>
         </ul>
-        <a class="btn btn-primary ancho" href={waLink('Hola, quiero inscribirme en el paquete mensual.')}>
-          Quiero empezar <span class="btn-flecha" aria-hidden="true">↗</span>
+        <a class="btn btn-primary ancho" href="#prueba">
+          Empezar con la clase gratis <span class="btn-flecha" aria-hidden="true">↗</span>
         </a>
         <p class="precio-nota">¿Prefieres pagar por transferencia? También se puede.</p>
       </div>
@@ -359,6 +407,50 @@ const PASOS = [
   .materia-link:hover { text-decoration: underline; }
   @media (min-width: 640px) { .grid-materias { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 1024px) { .grid-materias { grid-template-columns: repeat(4, 1fr); } }
+
+  /* ---- Prueba gratis ---- */
+  .prueba {
+    background: var(--color-sun-soft);
+    border-block: 2px dashed var(--color-sun);
+    padding-block: 4rem;
+  }
+  .prueba-cabecera { max-width: 52ch; }
+  .grid-prueba { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  .prof-prueba {
+    background: var(--color-raised);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .pp-foto {
+    width: 4.5rem; height: 4.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--c);
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-2xl);
+    margin-bottom: 0.75rem;
+  }
+  .pp-foto-pronto { background: var(--color-sun); font-size: 2rem; }
+  .prof-prueba h3 { font-size: var(--text-xl); margin: 0; }
+  .pp-materia { color: var(--color-ink-faint); font-size: var(--text-sm); margin: 0 0 1.25rem; }
+  .pp-btn { width: 100%; margin-top: auto; }
+  .pp-badge { margin-bottom: 0.75rem; }
+  .pp-espera { color: var(--color-ink-soft); font-size: var(--text-sm); text-decoration: none; font-weight: 600; }
+  .pp-espera:hover { color: var(--color-primary); }
+  .prof-pronto { border-style: dashed; }
+  .prueba-nota {
+    text-align: center;
+    color: var(--color-ink-soft);
+    font-size: var(--text-sm);
+    margin: 1.75rem 0 0;
+  }
+  @media (min-width: 768px) { .grid-prueba { grid-template-columns: repeat(3, 1fr); } }
 
   /* ---- Pasos: big ghost numerals ---- */
   .pasos { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }

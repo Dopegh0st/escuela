@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { SITE, waLink } from '../../config';
+import { SITE, waLink, MINUTOS_PRUEBA } from '../../config';
 
 export async function getStaticPaths() {
   const cursos = await getCollection('cursos', ({ data }) => data.publicado);
@@ -97,13 +97,18 @@ const jsonLd = {
             <div><dt>Profesor</dt><dd>{d.profesor}</dd></div>
             <div><dt>Nivel</dt><dd>{NIVEL_LABEL[d.nivel]}</dd></div>
           </dl>
-          <a class="btn btn-primary ancho" href={waLink(`Hola, quiero inscribirme en "${d.titulo}".`)}>
-            Quiero inscribirme
+          <a
+            class="btn btn-primary ancho"
+            href={waLink(`Hola, quiero mi primera clase gratis de "${d.titulo}" con ${d.profesor}.`)}
+          >
+            Primera clase gratis
           </a>
           <a class="btn btn-secondary ancho" href={waLink(`Hola, tengo una pregunta sobre "${d.titulo}".`)}>
             Tengo una pregunta
           </a>
-          <p class="panel-nota">Sin contrato. Cancelas cuando quieras.</p>
+          <p class="panel-nota">
+            {MINUTOS_PRUEBA} min a solas con {d.profesor}, sin tarjeta y sin compromiso.
+          </p>
         </div>
       </aside>
     </div>
