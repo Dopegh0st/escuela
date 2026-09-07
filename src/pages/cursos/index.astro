@@ -1,0 +1,76 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import CursoCard from '../../components/CursoCard.astro';
+import { waLink } from '../../config';
+
+const cursos = (await getCollection('cursos', ({ data }) => data.publicado))
+  .sort((a, b) => a.data.orden - b.data.orden);
+
+// Deliberately NO filter bar. Filters over a handful of courses advertise
+// emptiness; they earn their place somewhere past ~20 courses.
+---
+
+<Base
+  title="Cursos"
+  description="Cursos en vivo de inglés, música y programación con profesores titulados. Grupos pequeños, precios en dólares, sin contrato."
+>
+  <section class="cabecera">
+    <div class="container-page">
+      <h1>Nuestros cursos</h1>
+      <p class="lede">
+        Cada curso lo dicta una persona con nombre y apellido, en vivo y en grupos
+        pequeños. Lee de qué se trata antes de decidir — sin formularios de por medio.
+      </p>
+    </div>
+  </section>
+
+  <section class="container-page listado">
+    <div class="grid-cursos">
+      {cursos.map((curso) => <CursoCard curso={curso} />)}
+    </div>
+
+    <aside class="nota-cupos">
+      <h2>¿No encuentras lo que buscas?</h2>
+      <p>
+        Estamos abriendo cursos nuevos cada mes. Cuéntanos qué te gustaría aprender
+        y lo tomamos en cuenta — así es como salieron varios de los que ya están acá.
+      </p>
+      <a class="btn btn-whatsapp" href={waLink('Hola, me gustaría que abran un curso de...')}>
+        Proponer un curso
+      </a>
+    </aside>
+  </section>
+</Base>
+
+<style>
+  .cabecera {
+    background:
+      radial-gradient(ellipse 70% 60% at 20% -20%, var(--color-primary-soft), transparent 70%),
+      var(--color-surface);
+    padding-block: 3rem 2.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  h1 { font-size: var(--text-4xl); margin: 0 0 0.75rem; }
+  .lede { color: var(--color-ink-soft); font-size: var(--text-lg); max-width: 58ch; margin: 0; }
+
+  .listado { padding-block: 3rem 1rem; }
+  .grid-cursos {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 640px) { .grid-cursos { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .grid-cursos { grid-template-columns: repeat(3, 1fr); } }
+
+  .nota-cupos {
+    margin-top: 3.5rem;
+    padding: 2rem;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--color-sunken);
+    text-align: center;
+  }
+  .nota-cupos h2 { font-size: var(--text-xl); margin: 0 0 0.5rem; }
+  .nota-cupos p { color: var(--color-ink-soft); max-width: 52ch; margin: 0 auto 1.5rem; }
+</style>
