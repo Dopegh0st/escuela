@@ -39,7 +39,7 @@ const totalLecciones = lecciones.length;
 const estaPublicado = cursoActual.estado === 'publicado';
 ---
 
-<Estudio title={cursoActual.titulo} volverA="/estudio/" volverTexto="Mis cursos">
+<Estudio title={cursoActual.titulo} seccion="cursos" volverA="/estudio/cursos/" volverTexto="Mis cursos">
   <div class="top">
     <div>
       <span class={`estado estado-${cursoActual.estado}`}>

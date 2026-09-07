@@ -1,40 +1,64 @@
 ---
 import Estudio from '../../layouts/Estudio.astro';
-import { getDb } from '../../lib/db';
+import { getDb, schema } from '../../lib/db';
 import { cursosDeProfesor, perfilProfesor } from '../../lib/scope';
-import { actions } from 'astro:actions';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 export const prerender = false;
 
 const actor = Astro.locals.actor!;
+const usuario = Astro.locals.usuario!;
 const db = getDb();
 
 const perfil = await perfilProfesor(db, actor);
 const cursos = await cursosDeProfesor(db, actor);
 
-const result = Astro.getActionResult(actions.crearCurso);
-if (result && !result.error) {
-  return Astro.redirect(`/estudio/curso/${result.data.id}/`);
-}
+const cursoIds = cursos.map((c) => c.id);
+const publicados = cursos.filter((c) => c.estado === 'publicado').length;
+const borradores = cursos.length - publicados;
 
-const MATERIA: Record<string, string> = {
-  ingles: 'Inglés', musica: 'Música',
-  programacion: 'Programación', 'apoyo-escolar': 'Apoyo escolar',
-};
-const money = (c: number) => `$${(c / 100).toFixed(2)}`;
+// Real counts only. A dashboard that invents numbers is worse than an empty one:
+// the founder cannot tell a working feature from a decorative one.
+const modulos = cursoIds.length
+  ? await db.select({ id: schema.modulo.id, cursoId: schema.modulo.cursoId })
+      .from(schema.modulo).where(inArray(schema.modulo.cursoId, cursoIds))
+  : [];
+const moduloIds = modulos.map((m) => m.id);
+const lecciones = moduloIds.length
+  ? await db.select({ id: schema.leccion.id })
+      .from(schema.leccion).where(inArray(schema.leccion.moduloId, moduloIds))
+  : [];
+
+const matriculas = cursoIds.length
+  ? await db.select({ id: schema.matricula.id })
+      .from(schema.matricula).where(inArray(schema.matricula.cursoId, cursoIds))
+  : [];
+
+const solicitudes = perfil
+  ? await db.select({ id: schema.claseGratis.id, nombre: schema.claseGratis.nombre,
+                      estado: schema.claseGratis.estado, materia: schema.claseGratis.materia })
+      .from(schema.claseGratis).where(eq(schema.claseGratis.profesorId, perfil.id))
+  : [];
+
+const proximas = perfil
+  ? await db.select().from(schema.claseSesion)
+      .where(eq(schema.claseSesion.profesorId, perfil.id))
+      .orderBy(schema.claseSesion.inicioAt).limit(5)
+  : [];
+
+const DATOS = [
+  { icono: '📚', valor: cursos.length,      etiqueta: 'Cursos',      pie: `${publicados} publicados · ${borradores} en borrador`, color: 'var(--color-primary)' },
+  { icono: '🎬', valor: lecciones.length,   etiqueta: 'Lecciones',   pie: `en ${modulos.length} módulos`,                          color: 'var(--color-grape)' },
+  { icono: '🎒', valor: matriculas.length,  etiqueta: 'Estudiantes', pie: 'matriculados en tus cursos',                            color: 'var(--color-accent)' },
+  { icono: '🎁', valor: solicitudes.length, etiqueta: 'Clases gratis', pie: 'solicitudes recibidas',                               color: '#c98a10' },
+];
+
+const primerNombre = (usuario.nombre ?? '').split(' ')[0];
+const sinCursos = cursos.length === 0;
 ---
 
-<Estudio title="Mis cursos">
-  <div class="cabecera">
-    <div>
-      <h1>Mis cursos</h1>
-      <p class="sub">
-        {cursos.length === 0
-          ? 'Todavía no has creado ningún curso.'
-          : `${cursos.length} ${cursos.length === 1 ? 'curso' : 'cursos'}`}
-      </p>
-    </div>
-  </div>
+<Estudio title="Inicio" seccion="inicio">
+  <p class="saludo">Hola, {primerNombre} 👋</p>
 
   {!perfil && (
     <div class="aviso">
@@ -43,130 +67,169 @@ const money = (c: number) => `$${(c / 100).toFixed(2)}`;
     </div>
   )}
 
-  {result?.error && (
-    <p class="error">{result.error.message}</p>
-  )}
-
-  <div class="grid">
-    {cursos.map((c) => (
-      <a class="curso" href={`/estudio/curso/${c.id}/`}>
-        <div class="curso-top">
-          <span class={`estado estado-${c.estado}`}>
-            {c.estado === 'publicado' ? 'Publicado' : c.estado === 'archivado' ? 'Archivado' : 'Borrador'}
-          </span>
-          <span class="materia">{MATERIA[c.materia] ?? c.materia}</span>
-        </div>
-        <h2>{c.titulo || 'Sin título'}</h2>
-        <p class="resumen">{c.resumen || 'Sin resumen todavía.'}</p>
-        <div class="curso-pie">
-          <span>{money(c.precioCentavos)}</span>
-          <span>·</span>
-          <span>{c.clasesTotal} clases</span>
-          <span>·</span>
-          <span>{c.formato === 'individual' ? 'Individual' : `Grupo de ${c.cupoMax}`}</span>
-        </div>
-      </a>
+  <!-- ============ Stats ============ -->
+  <div class="stats">
+    {DATOS.map((d) => (
+      <article class="stat" style={`--c:${d.color}`}>
+        <span class="stat-icono" aria-hidden="true">{d.icono}</span>
+        <p class="stat-valor">{d.valor}</p>
+        <p class="stat-etiqueta">{d.etiqueta}</p>
+        <p class="stat-pie">{d.pie}</p>
+      </article>
     ))}
+  </div>
 
-    {perfil && (
-      <form method="POST" action={actions.crearCurso} class="nuevo">
-        <h2>Crear un curso nuevo</h2>
-        <label for="titulo">¿Cómo se va a llamar?</label>
-        <input id="titulo" name="titulo" required minlength="3" maxlength="140"
-               placeholder="Ej: Guitarra desde cero" />
+  <div class="columnas">
+    <!-- ============ Cursos ============ -->
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Tus cursos</h2>
+        <a href="/estudio/cursos/" class="panel-link">Ver todos →</a>
+      </header>
 
-        <label for="materia">¿De qué materia es?</label>
-        <select id="materia" name="materia" required>
-          <option value="ingles">Inglés</option>
-          <option value="musica">Música</option>
-          <option value="programacion">Programación</option>
-          <option value="apoyo-escolar">Apoyo escolar</option>
-        </select>
+      {sinCursos ? (
+        <div class="vacio">
+          <span class="vacio-emoji" aria-hidden="true">📚</span>
+          <p><strong>Todavía no has creado ningún curso.</strong></p>
+          <p class="vacio-sub">Empieza por uno. Se guarda como borrador y nadie lo ve hasta que tú lo publiques.</p>
+          <a class="btn btn-primary" href="/estudio/cursos/">Crear mi primer curso</a>
+        </div>
+      ) : (
+        <ul class="lista">
+          {cursos.slice(0, 5).map((c) => (
+            <li>
+              <a href={`/estudio/curso/${c.id}/`}>
+                <span class="lista-titulo">{c.titulo}</span>
+                <span class={`pill pill-${c.estado}`}>
+                  {c.estado === 'publicado' ? 'Publicado' : 'Borrador'}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
 
-        <label for="formato">¿Cómo se dicta?</label>
-        <select id="formato" name="formato">
-          <option value="grupal">En grupo</option>
-          <option value="individual">Individual</option>
-        </select>
+    <!-- ============ Actividad ============ -->
+    <section class="panel">
+      <header class="panel-head"><h2>Qué sigue</h2></header>
 
-        <button class="btn btn-primary ancho" type="submit">Crear curso</button>
-        <p class="nota">Se crea como borrador. Nadie lo ve hasta que tú lo publiques.</p>
-      </form>
-    )}
+      <ul class="tareas">
+        <li class={cursos.length > 0 ? 'hecho' : ''}>
+          <span class="check" aria-hidden="true">{cursos.length > 0 ? '✓' : '1'}</span>
+          <div><strong>Crea tu primer curso</strong><span>Ponle título, materia y precio.</span></div>
+        </li>
+        <li class={lecciones.length > 0 ? 'hecho' : ''}>
+          <span class="check" aria-hidden="true">{lecciones.length > 0 ? '✓' : '2'}</span>
+          <div><strong>Agrega módulos y lecciones</strong><span>Un módulo por semana funciona bien.</span></div>
+        </li>
+        <li class={publicados > 0 ? 'hecho' : ''}>
+          <span class="check" aria-hidden="true">{publicados > 0 ? '✓' : '3'}</span>
+          <div><strong>Publica el curso</strong><span>Necesita resumen y al menos un módulo.</span></div>
+        </li>
+        <li class={matriculas.length > 0 ? 'hecho' : ''}>
+          <span class="check" aria-hidden="true">{matriculas.length > 0 ? '✓' : '4'}</span>
+          <div><strong>Recibe tu primer estudiante</strong><span>Comparte el enlace del curso por WhatsApp.</span></div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ Próximas clases ============ -->
+    <section class="panel">
+      <header class="panel-head"><h2>Próximas clases</h2></header>
+      {proximas.length === 0 ? (
+        <p class="nada">No tienes clases agendadas todavía.</p>
+      ) : (
+        <ul class="lista">
+          {proximas.map((s) => (
+            <li>
+              <span class="lista-titulo">
+                {new Date(s.inicioAt * 1000).toLocaleString('es-EC', {
+                  weekday: 'short', day: 'numeric', month: 'short',
+                  hour: '2-digit', minute: '2-digit', timeZone: 'America/Guayaquil',
+                })}
+              </span>
+              <span class="pill">{s.estado}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <!-- ============ Solicitudes ============ -->
+    <section class="panel">
+      <header class="panel-head"><h2>Clases gratis solicitadas</h2></header>
+      {solicitudes.length === 0 ? (
+        <p class="nada">Nadie ha pedido una clase gratis todavía.</p>
+      ) : (
+        <ul class="lista">
+          {solicitudes.slice(0, 5).map((s) => (
+            <li>
+              <span class="lista-titulo">{s.nombre}</span>
+              <span class="pill">{s.estado}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   </div>
 </Estudio>
 
 <style>
-  .cabecera { margin-bottom: 1.75rem; }
-  h1 { font-size: var(--text-3xl); margin: 0 0 0.25rem; }
-  .sub { color: var(--color-ink-soft); margin: 0; }
+  .saludo { font-family: var(--font-display); font-weight: 800; font-size: var(--text-2xl); margin: 0 0 1.5rem; }
 
   .aviso {
-    background: var(--color-sun-soft);
-    border: 2px solid var(--color-sun);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1.5rem;
+    background: var(--color-sun-soft); border: 2px solid var(--color-sun);
+    border-radius: var(--radius-lg); padding: 1.125rem 1.375rem; margin-bottom: 1.5rem;
   }
   .aviso p { margin: 0.25rem 0 0; color: var(--color-ink-soft); }
 
-  .error {
-    background: #fdecec; color: var(--color-danger);
-    border-radius: var(--radius-md); padding: 0.875rem 1.125rem;
-    font-weight: 600; margin-bottom: 1.25rem;
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media (min-width: 1000px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+  .stat {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.25rem;
+    border-top: 4px solid var(--c);
   }
+  .stat-icono { font-size: 1.5rem; }
+  .stat-valor { font-family: var(--font-display); font-weight: 800; font-size: 2.25rem; line-height: 1; margin: 0.5rem 0 0.125rem; color: var(--c); }
+  .stat-etiqueta { font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm); margin: 0; }
+  .stat-pie { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.125rem 0 0; }
 
-  .grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
-  @media (min-width: 760px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 1120px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  .columnas { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  @media (min-width: 900px) { .columnas { grid-template-columns: repeat(2, 1fr); } }
 
-  .curso {
-    background: var(--color-raised);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    text-decoration: none; color: inherit;
-    display: flex; flex-direction: column; gap: 0.5rem;
-    transition: transform 0.15s ease, border-color 0.15s ease;
-  }
-  .curso:hover { transform: translateY(-3px); border-color: var(--color-primary); }
-  .curso-top { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
-  .estado {
-    font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display);
-    padding: 0.25rem 0.625rem; border-radius: var(--radius-pill);
-  }
-  .estado-borrador { background: var(--color-sunken); color: var(--color-ink-faint); }
-  .estado-publicado { background: var(--color-accent-soft); color: var(--color-accent); }
-  .estado-archivado { background: #eee; color: #777; }
-  .materia { font-size: var(--text-xs); color: var(--color-ink-faint); }
-  .curso h2 { font-size: var(--text-lg); margin: 0; }
-  .resumen { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0; flex: 1; }
-  .curso-pie {
-    display: flex; gap: 0.375rem; flex-wrap: wrap;
-    font-size: var(--text-xs); color: var(--color-ink-faint);
-    padding-top: 0.75rem; border-top: 1px solid var(--color-border);
-  }
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0; }
+  .panel-link { font-size: var(--text-sm); color: var(--color-primary); font-weight: 700; text-decoration: none; }
 
-  .nuevo {
-    background: var(--color-raised);
-    border: 2px dashed var(--color-border-strong);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
+  .lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+  .lista li a, .lista li { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; text-decoration: none; color: inherit; }
+  .lista li { padding: 0.625rem 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+  .lista li:hover { border-color: var(--color-primary); }
+  .lista-titulo { font-size: var(--text-sm); font-weight: 600; }
+  .pill { font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display); padding: 0.1875rem 0.5rem; border-radius: var(--radius-pill); background: var(--color-sunken); color: var(--color-ink-faint); white-space: nowrap; }
+  .pill-publicado { background: var(--color-accent-soft); color: var(--color-accent); }
+
+  .vacio { text-align: center; padding: 1.5rem 1rem; }
+  .vacio-emoji { font-size: 2.25rem; }
+  .vacio p { margin: 0.5rem 0 0; }
+  .vacio-sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin-bottom: 1.25rem !important; }
+  .nada { color: var(--color-ink-faint); font-size: var(--text-sm); margin: 0; font-style: italic; }
+
+  .tareas { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+  .tareas li { display: flex; gap: 0.75rem; align-items: flex-start; }
+  .tareas div { display: flex; flex-direction: column; }
+  .tareas strong { font-size: var(--text-sm); }
+  .tareas span:last-child { font-size: var(--text-xs); color: var(--color-ink-faint); }
+  .check {
+    width: 1.5rem; height: 1.5rem; flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--color-sunken); color: var(--color-ink-faint);
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-xs);
   }
-  .nuevo h2 { font-size: var(--text-lg); margin: 0 0 1rem; }
-  label {
-    display: block; font-family: var(--font-display); font-weight: 700;
-    font-size: var(--text-sm); margin-bottom: 0.375rem;
-  }
-  input, select {
-    width: 100%; padding: 0.75rem 0.875rem;
-    font-size: var(--text-base); font-family: inherit;
-    border: 2px solid var(--color-border-strong);
-    border-radius: var(--radius-md);
-    background: var(--color-surface); color: var(--color-ink);
-    margin-bottom: 1rem;
-  }
-  input:focus, select:focus { border-color: var(--color-primary); }
-  .ancho { width: 100%; }
-  .nota { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.75rem 0 0; text-align: center; }
+  .hecho .check { background: var(--color-accent); color: #fff; }
+  .hecho strong { color: var(--color-ink-faint); text-decoration: line-through; }
 </style>
