@@ -1,0 +1,93 @@
+---
+import '../styles/global.css';
+import { SITE } from '../config';
+
+interface Props {
+  title: string;
+  volverA?: string;
+  volverTexto?: string;
+}
+
+const { title, volverA, volverTexto } = Astro.props;
+const usuario = Astro.locals.usuario;
+---
+
+<!doctype html>
+<html lang="es-EC">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Estudio · {SITE.name}</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" />
+  </head>
+  <body>
+    <header class="est-header">
+      <div class="est-inner">
+        <a href="/estudio/" class="est-marca">{SITE.name} <span>Estudio</span></a>
+
+        {volverA && (
+          <a class="est-volver" href={volverA}>← {volverTexto ?? 'Volver'}</a>
+        )}
+
+        <div class="est-usuario">
+          {usuario && <span class="est-nombre">{usuario.nombre}</span>}
+          <a class="est-salir" href="/" title="Ver el sitio">Ver sitio</a>
+          <button class="est-salir" id="salir" type="button">Salir</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="est-main">
+      <slot />
+    </main>
+
+    <script is:inline>
+      document.getElementById('salir')?.addEventListener('click', async () => {
+        await fetch('/api/auth/sign-out', { method: 'POST' });
+        window.location.href = '/entrar';
+      });
+    </script>
+
+    <style>
+      body { background: var(--color-sunken); }
+
+      .est-header {
+        position: sticky; top: 0; z-index: 40;
+        background: var(--color-deep);
+        color: #fff;
+      }
+      .est-inner {
+        max-width: 78rem; margin-inline: auto;
+        padding: 0 1.25rem;
+        height: 60px;
+        display: flex; align-items: center; gap: 1.25rem;
+      }
+      .est-marca {
+        font-family: var(--font-display); font-weight: 800;
+        color: #fff; text-decoration: none; font-size: var(--text-lg);
+      }
+      .est-marca span {
+        font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em;
+        background: rgb(255 255 255 / 0.16); padding: 0.2rem 0.5rem;
+        border-radius: var(--radius-pill); margin-left: 0.375rem; vertical-align: middle;
+      }
+      .est-volver { color: #cfc9ea; text-decoration: none; font-size: var(--text-sm); font-weight: 600; }
+      .est-volver:hover { color: #fff; }
+      .est-usuario { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+      .est-nombre { font-size: var(--text-sm); color: #cfc9ea; }
+      .est-salir {
+        background: none; border: none; cursor: pointer;
+        color: #fff; font-size: var(--text-sm); font-weight: 700;
+        font-family: var(--font-display); text-decoration: none;
+      }
+      .est-salir:hover { color: var(--color-sun); }
+
+      .est-main { max-width: 78rem; margin-inline: auto; padding: 2rem 1.25rem 4rem; }
+    </style>
+  </body>
+</html>
