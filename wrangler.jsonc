@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "escuela",
+  "compatibility_date": "2026-09-03",
+  // node:crypto scrypt for password hashing. Not optional -- see src/lib/auth.ts.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "escuela",
+      "database_id": "549b0c6e-e6d0-4334-a0c5-c3f745bdbddb",
+      "migrations_dir": "migrations"
+    }
+  ]
+
+  // Deliberately NO kv_namespaces. The Cloudflare adapter auto-wires Astro
+  // Sessions to a KV binding named SESSION unless `session: false` is set in
+  // astro.config.mjs. KV Free allows 1,000 writes/day, so sessions would begin
+  // failing around 19:00 Ecuador time -- the mid-evening study peak. Sessions
+  // live in D1 instead: 100k writes/day for $0, and strongly consistent.
+}

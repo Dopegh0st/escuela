@@ -458,3 +458,77 @@ around it.
   the $120/mes assumption and needs redoing against these numbers.
 - Free first class (D-prueba, 25 min 1-to-1) stays. Against a $25 course it is a proportionally
   bigger giveaway, so the 25-minute length matters more, not less.
+
+## D15 — Database created. Subscriptions are gone by design.  ⟵ 2026-09-07
+
+**D1 `escuela` created and migrated — this was the irreversible step.**
+
+| | |
+|---|---|
+| Name | `escuela` |
+| ID | `549b0c6e-e6d0-4334-a0c5-c3f745bdbddb` |
+| Jurisdiction | **default** (founder's choice), placed in **ENAM**, served from **MIA** |
+| Binding | `DB` |
+| Tables | 20 |
+
+Miami is about as close to Ecuador as Cloudflare gets, so the default choice paid
+off on latency. When Elena's vertical opens, create a **second** D1 with EU
+jurisdiction for clinical records only — jurisdiction is per-database, so this
+does not have to be traded off now.
+
+### Subscriptions: removed by D14, not deferred
+
+Repricing to a fixed $25 course deleted the hardest part of the build. Nothing
+below needs to exist:
+
+| Was required for $120/mes | Status |
+|---|---|
+| Card-on-file tokenisation | not needed |
+| Renewal cron + dunning | not needed |
+| Failed-payment recovery | not needed |
+| Subscription state machine | not needed |
+| Proration / mid-cycle cancellation | not needed |
+
+This resolves the blocker the critics raised in MASTER-PLAN §5: **PayPhone is a
+one-shot browser redirect with no card-on-file**, so a monthly product had no
+mechanism to charge month two. The fixed-price course sidesteps it rather than
+engineering around it. What remains is "take $25 once, grant access."
+
+### Fixes from the critique that are now in the schema, not a to-do list
+
+- **`orden_item.beneficiario_user_id`** — a mother buying for her child was
+  previously impossible to represent, and it is the most common purchase here.
+- **`pago.client_transaction_id UNIQUE`** — PayPhone's correlation key. The
+  uniqueness is what makes the webhook idempotent; without it a retried callback
+  double-grants enrolment.
+- **`clase_sesion` + `sesion_asistente`** — group classes were physically
+  impossible under the old 1:1 booking constraint while the business sold groups
+  of 8.
+- **Order states `pending_transfer` / `reversed`, payment state
+  `pending_verification`** — manual bank transfer is a first-class rail in this
+  market, not a fallback.
+- **`user.fecha_nacimiento` in every vertical** — minors trigger LOPDP duties
+  platform-wide (Res. SPDP-SPD-2025-0028-R Art. 10.1/10.3, "toda actividad"),
+  and signup previously had no age question at all. Stored as a date, never a
+  derived boolean, so it stays correct as the person ages.
+- **`guardian_link.verified_at` / `revoked_at`** — guardian links must be
+  invite-and-accept. Trusting a client-supplied ward id was a live IDOR.
+- **`profesor.vetting_completado_at`** — hard gate before any teacher is
+  assigned to a session with children.
+- **`clase_sesion.meeting_url` nullable per session** — one fresh link per
+  session, nulled on cancel. The old permanent bearer URL meant anyone ever
+  forwarded it could rejoin a class with children indefinitely.
+- **`audit_log`** — append-only, with a reason on every destructive action.
+
+### Cost check (founder asked to verify nothing is paid)
+
+Every dependency is **MIT or Apache-2.0**: astro, @astrojs/cloudflare, tailwindcss,
+typescript, wrangler, **better-auth (MIT, free forever, no per-user fees)**,
+drizzle-orm (Apache-2.0), drizzle-kit (MIT). Better Auth does sell an optional
+*managed* service (hosted dashboard, audit logs, enterprise SSO) — we self-host
+the library and never touch it.
+
+Known advisory: `esbuild <=0.24.2` via `drizzle-kit` (GHSA-67mh-4wv8-2f99).
+Dev-server-only, drizzle-kit is a devDependency that never ships to production,
+and the offered fix downgrades to drizzle-kit 0.18.1 which is ancient and
+breaking. Accepted knowingly.

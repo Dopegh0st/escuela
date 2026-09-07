@@ -9,14 +9,20 @@
     "preview": "wrangler dev",
     "deploy": "astro build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "astro": "astro"
+    "astro": "astro",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply escuela --local",
+    "db:migrate": "wrangler d1 migrations apply escuela --remote"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.3.0",
-    "astro": "7.3.1"
+    "astro": "7.3.1",
+    "better-auth": "1.7.3",
+    "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
+    "drizzle-kit": "0.31.10",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "wrangler": "4.129.0"
