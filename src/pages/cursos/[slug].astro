@@ -1,5 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
+import { Image } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import { SITE, waLink, MINUTOS_PRUEBA } from '../../config';
 
@@ -76,7 +77,20 @@ const jsonLd = {
             </div>
           </div>
         </div>
-        <div class="portada" aria-hidden="true"><span>{d.portada.emoji}</span></div>
+        <div class="portada" aria-hidden={d.imagen ? undefined : 'true'}>
+          {d.imagen ? (
+            <Image
+              src={d.imagen}
+              alt={d.imagenAlt ?? ''}
+              widths={[600, 1000]}
+              sizes="(min-width: 768px) 460px, 100vw"
+              loading="eager"
+              class="portada-img"
+            />
+          ) : (
+            <span>{d.portada.emoji}</span>
+          )}
+        </div>
       </div>
     </header>
 
@@ -151,6 +165,7 @@ const jsonLd = {
     background: linear-gradient(135deg, var(--desde), var(--hasta));
   }
   .portada span { font-size: 5rem; filter: drop-shadow(0 3px 10px rgb(0 0 0 / 0.25)); }
+  .portada-img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-xl); }
 
   .cuerpo {
     display: grid;

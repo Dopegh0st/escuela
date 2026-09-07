@@ -1,179 +1,176 @@
-# Imagery: what to actually do
+# Imagery brief — generate these on davinci.ai
 
-**Researched 2026-09-06 by three independent agents. This corrects earlier advice in this file,
-which was wrong.**
+**Use davinci.ai with Recraft V4.1. You already have it. Download PNG — not SVG.**
+
+That is not a compromise. Research on 2026-09-06 measured a correctly-sized **AVIF at ~7 KB**
+versus Recraft's native **SVG at 24–144 KB**. Raster is the better format here; Astro converts and
+resizes it at build. The earlier "get SVG" advice in this file was wrong and is corrected at the
+bottom.
+
+**Settings on every generation:** model **Recraft V4.1** · aspect ratio **16:9** for covers,
+**1:1** for the hero · download **PNG at the largest offered size**.
 
 ---
 
-## The short answer
+## Step 1 — Generate the style anchor first
 
-**No — davinci.ai cannot give you SVG.** And you probably shouldn't buy anything at all.
+This is the whole game. Generate this one image, iterate until it is right, then **save it as a
+style / reuse it as a style reference** for everything else. Prompt each image independently and
+you get five attractive images that visibly do not belong to the same brand — which looks worse
+than the gradients you have now.
+
+```
+Flat vector-style illustration of a friendly desk scene: an open laptop, an acoustic guitar leaning
+beside it, a stack of two books, and a small potted plant on a simple surface. Warm, playful,
+optimistic, viewed straight on. Bold geometric shapes, thick clean outlines, soft rounded corners,
+large flat colour areas, generous negative space, subtle paper grain.
+
+Colour palette, strictly: coral #e0522c, teal #14897c, violet #5b4bc4, golden yellow #ffc24b,
+cream background #fffbf5, deep indigo #2e2a63.
+
+Modern, warm children's-education brand. No text, no letters, no numbers, no words anywhere.
+No photorealism. No 3D render. No stock-photo look. No drop shadows.
+```
 
 ---
 
-## 1. davinci.ai cannot export SVG. This is a missing model, not a missing button.
+## Step 2 — The four course covers · 16:9
 
-davinci.ai is a multi-model aggregator operated by **HubX** (HubX Yazılım Hizmetleri A.Ş., İzmir,
-Turkey) — not Blackmagic's DaVinci Resolve, not an OpenAI product.
+Paste the **palette block** and the **rules block** from the anchor into each one, and apply the
+saved style.
 
-Its live public model catalogue (pulled from `wl-cms-web-prod.davinci.ai/image-models`, 204 KB of
-JSON) lists 28 image models, including exactly three Recraft entries:
+### Inglés — coral dominant
+```
+Two overlapping speech bubbles of different sizes with a small paper aeroplane flying between them.
+Dominant colour coral #e0522c on cream #fffbf5, small accents in teal and golden yellow.
+```
+
+### Música — teal dominant
+```
+An acoustic guitar seen from the front with three simple rounded sound waves radiating from the
+sound hole. Dominant colour teal #14897c on cream #fffbf5, small accents in coral and golden yellow.
+```
+
+### Programación — violet dominant
+```
+A laptop seen straight on with three simple stacked bars on the screen suggesting code, and one
+small rocket rising from the corner. Dominant colour violet #5b4bc4 on cream #fffbf5, small accents
+in coral and teal.
+```
+
+### Apoyo escolar — golden dominant
+```
+A small sprouting plant in a rounded pot with two gentle speech bubbles floating above it like
+leaves. Calm, warm, reassuring. Dominant golden yellow #ffc24b on cream #fffbf5, accents in teal.
+```
+
+⚠️ **Keep this one non-clinical.** No stethoscopes, crosses, clipboards, anatomy or clinic rooms.
+Per `Plan/agents/10-compliance-costed-path.md` the imagery must stay on the education side of the
+regulatory line for exactly the same reason the copy does.
+
+---
+
+## Step 3 — Hero · 1:1
+
+```
+Composed inside a circle: four small friendly objects arranged around the centre — a speech bubble,
+an acoustic guitar, a laptop, and a small potted plant — with simple star and dot sparkles between
+them. Balanced, symmetrical, cheerful. Cream background.
+```
+
+---
+
+## Step 4 — Drop the files in and wire them up
+
+Save as `src/assets/cursos/{slug}.png` — **`src/assets/`, never `public/`.**
+`public/` ships the file verbatim at full weight; `src/assets/` goes through Astro's pipeline, which
+resizes and converts to AVIF/WebP. At Ecuador's ~$100/GB out-of-bundle data rate that difference is
+real money out of your visitor's pocket.
+
+| Course | File |
+|---|---|
+| Inglés | `src/assets/cursos/ingles-conversacional.png` |
+| Música | `src/assets/cursos/guitarra-desde-cero.png` |
+| Programación | `src/assets/cursos/programacion-desde-cero.png` |
+
+Then add two lines to that course's frontmatter — e.g. in
+`src/content/cursos/guitarra-desde-cero.md`:
+
+```yaml
+imagen: ../../assets/cursos/guitarra-desde-cero.png
+imagenAlt: "Ilustración de una guitarra acústica con ondas de sonido"
+```
+
+The code already handles this: **if `imagen` is present it renders the photo, otherwise it falls
+back to the gradient + emoji.** So add them one at a time — the build never breaks half-way.
+
+`imagenAlt` is required for accessibility and read by screen readers. Write it in Spanish,
+describing what the image *shows*.
+
+---
+
+## Do NOT generate
+
+| Don't | Why |
+|---|---|
+| **Faces for David, Daniel or Elena** | Presenting a generated face as a real teacher is deception. For Elena it is worse — the compliance plan displays her título and ACESS number, and a real credential beside a fake face is the worst possible pairing. **A phone camera in good light beats anything these tools produce.** Save to `src/assets/profesores/`. |
+| **Any image containing words** | AI text rendering is unreliable and the site is Spanish. A misspelt `programación` on a cover is worse than no word. Type goes in HTML, where it is selectable and translatable. |
+| **Photorealistic classrooms or students** | Reads as stock photography to exactly the buyer you are trying to convince, and every local competitor already looks like that. |
+| **Medical imagery for Elena's vertical** | Compliance — see above. |
+
+---
+---
+
+# Research record — what was checked, and what I got wrong
+
+Three independent agents, 2026-09-06.
+
+## davinci.ai cannot export SVG. Missing model, not missing button.
+
+davinci.ai is a multi-model aggregator operated by **HubX** (İzmir, Turkey) — not Blackmagic's
+DaVinci Resolve, not an OpenAI product. Its live catalogue lists three Recraft entries:
 
 | Model | Credits | Slug |
 |---|---|---|
 | Recraft V3 | 13 | — |
-| **Recraft V4.1** | 15 | **`recraft-4-1`** ← the model in your URL |
+| **Recraft V4.1** | 15 | **`recraft-4-1`** ← the one in your URL |
 | Recraft V4.1 Pro | 69 | — |
 
-**None of them is a Vector variant.** Recraft ships raster and vector as *separately billable
-models* — `V4.1 Vector`, `V4.1 Pro Vector`, `V4.1 Utility Vector`. davinci.ai wired up only the
-raster ones.
+**All raster.** Recraft bills vector as separate models (`V4.1 Vector`, `V4.1 Pro Vector`) which
+davinci.ai never wired up. `"svg"` appears **zero times** across its model, aspect-ratio and
+art-style endpoints, and all output is stored PNG/JPEG and served as WebP through Cloudflare Image
+Resizing. No vector geometry is ever generated.
 
-Corroborating evidence:
-- The string `"svg"` appears **zero times** in the entire 204 KB model catalogue, zero times in the
-  aspect-ratio endpoint, and zero times in the art-styles endpoint.
-- All generated content is stored as `.png`/`.jpeg` and served through Cloudflare Image Resizing as
-  WebP (`img.davinci.ai/cdn-cgi/image/format=webp,...`) — a pipeline that cannot carry SVG at all.
+*Exception:* davinci.ai's **separate Logo Generator** product does advertise SVG/PNG/PDF. Different
+tool from the Recraft explore page — worth trying for a logo mark specifically.
 
-So no vector geometry is ever generated. Even a hypothetical "SVG" button could only auto-trace.
+## Four things I got wrong
 
-**One exception worth knowing:** davinci.ai's *separate* **Logo Generator** product does advertise
-"SVG, PNG, PDF". That is a different tool from the Recraft explore model. If you want to try it for
-a logo, that is the place — not the `recraft-4-1` explore page.
+1. **"SVG is 5–30 KB."** That range is icons and simple logo marks. Real flat illustrations measure
+   **24–144 KB**. Recraft staff publicly acknowledge working on vector file size.
+2. **The comparison was rigged** — optimised SVG against an unoptimised full-size PNG. Measured
+   honestly: raw 1024px PNG **1.76 MB**, Recraft SVG **24–144 KB**, correctly-sized 480px AVIF
+   **6,988 bytes**. AVIF wins.
+3. **FLUX.1-dev's licence prohibits commercial use.** Use **FLUX.1-schnell** (Apache 2.0).
+4. **Lucide/astro-icon is not installed.** That was a *plan recommendation* I mistook for reality.
+   Actual deps: `astro`, `@astrojs/cloudflare`, `tailwindcss`, `@tailwindcss/vite`, `typescript`,
+   `wrangler`.
 
-## 2. The "5–30 KB" figure was optimistic by 3–5×
+## Recraft's free tier is a trap for a brand mark
 
-Recraft's vector output *is* genuine native vector, not auto-traced — Recraft states this plainly
-("Recraft generates true vectors… The paths are real, the points are yours"). That part was right.
+SVG export is available on free (30 gens/day), but Recraft **owns** free-plan images, publishes them
+in the public community gallery, and grants **no commercial licence** — and rights vest at
+generation time, so upgrading later does not retroactively fix a logo made on free.
+Paid Basic is ~$10/mo billed annually. Direct API is $0.08/image for V4.1 Vector.
 
-The size figure was not:
+## Free local escape hatch, measured
 
-| Asset | Real size |
-|---|---|
-| Icons, simple logo marks | 5–30 KB ✅ |
-| **Flat illustrations** | **24–144 KB** ❌ (I said 5–30) |
+If you later want unlimited generation, the RTX 4080 SUPER does it for nothing:
+**FLUX.1-schnell** → palette pre-flatten → `vtracer --palette --filter-speckle 24 --simplify 2
+--path-precision 1 --optimize 2` → **SVGO**. Measured: 1.76 MB PNG → **8,295-byte, 26-path SVG in
+2.1 s**. Never use `--max-colors` — it silently repainted teal as blue and coral as mauve.
 
-Recraft's own feedback board has a user reporting SVGs "starting at 9k characters", with a Recraft
-staffer replying they are "currently working on reducing the file size of vector images" and
-suggesting simpler visuals as the workaround.
+## The 10-second check on any downloaded `.svg`
 
-## 3. The comparison I made was rigged
-
-I compared an *optimised SVG* against an *unoptimised, full-size PNG*. The honest counterfactual is
-an image encoded at the size it is actually displayed:
-
-| Format | Size |
-|---|---|
-| Raw 1024px PNG | 1.76 MB (measured) |
-| Recraft native SVG | 24–144 KB |
-| **480px AVIF** | **6,988 bytes** (measured) |
-
-**A correctly-sized AVIF beats Recraft's SVG by 3–20×.** SVG only wins when the artwork is
-genuinely flat and palette-locked — and then it also wins on scalability, which AVIF cannot match.
-
-⚠️ **Also: drop "subtle grain texture" from any vector prompt.** In raster, grain is free. In
-vector, grain means thousands of tiny shapes — it is the fastest way to turn a 20 KB SVG into a
-300 KB one. That instruction was in the earlier version of this file and was self-defeating.
-
-## 4. Recraft's free tier is a trap for a brand mark
-
-SVG export *is* available on the free plan (30 generations/day). But on the free plan:
-
-- **Recraft owns the images.**
-- They appear **publicly in the community gallery.**
-- They are explicitly **"not licensed for commercial use."**
-- **Rights vest at generation time** — upgrading later does *not* retroactively license a logo you
-  made on free.
-
-If you ever generate the logo there, do it on a paid plan or not at all.
-
-Paid: **Basic ~$10/mo billed annually**, 1,000 credits; V4.1 Vector costs ~2–4 credits per
-generation. Direct API: **$0.08/image** for V4.1 Vector, $0.01 for vectorization — which skips
-davinci.ai entirely.
-
----
-
-## The recommendation: don't buy anything
-
-**Your entire built site is 123 KB today, and the course covers cost zero bytes.** The cheapest
-asset is the one you don't ship.
-
-1. **Keep the CSS-gradient + emoji course covers exactly as they are.** Unbeatable at ~$100/GB, and
-   they already look deliberate rather than placeholder.
-2. **Hand-author the logo as inline SVG** — 1–2 KB, infinitely scalable, no licence questions, no
-   subscription. A wordmark plus a simple geometric mark is well within reach by hand.
-3. **If the covers ever need more than an emoji**, add **Lucide** or **Iconoir** (ISC/MIT,
-   `currentColor`, ~500 bytes per icon, recolours to your palette for free).
-   ⚠️ Correction: these are **not** currently installed. The project's only dependencies are
-   `astro`, `@astrojs/cloudflare`, `tailwindcss`, `@tailwindcss/vite`, `typescript`, `wrangler`.
-   An earlier note claiming astro-icon was already a dependency was wrong — that was a *plan*
-   recommendation, not an installed package.
-4. **Do not pay davinci.ai, Recraft, Kittl or Canva** for this.
-   ⚠️ The connected Canva MCP cannot export SVG either — only PDF/JPG/PNG/PPTX/GIF/MP4/CSV.
-
----
-
-## Escape hatch: the local pipeline, free and measured
-
-If you later want real illustration, your RTX 4080 SUPER does it for nothing. This was built and
-verified end to end: **1.76 MB PNG → 8,295-byte, 26-path, on-brand SVG in 2.1 seconds.**
-
-1. Generate with **FLUX.1-schnell**, not FLUX.1-dev.
-   ⚠️ **FLUX.1-dev's licence prohibits commercial use.** FLUX.1-schnell is Apache 2.0. I
-   recommended `dev` earlier — that was wrong for a business.
-2. Pre-flatten to your exact palette (coral `#e0522c`, teal `#14897c`, violet `#5b4bc4`, golden
-   `#ffc24b`, cream `#fffbf5`).
-3. Trace:
-   ```
-   vtracer --palette --filter-speckle 24 --simplify 2 --path-precision 1 --optimize 2
-   ```
-4. Run **SVGO** on the result.
-
-⚠️ **Never use vtracer's `--max-colors`.** In testing it silently repainted teal as blue and coral
-as mauve.
-
----
-
-## The 10-second check, if you try any tool
-
-Open the downloaded `.svg` in a text editor:
-
-- `<path d="M12 4L...` → real vector. Good.
-- `<image href="data:image/png;base64,iVBOR...` → a PNG wearing an SVG costume. It is **larger**
-  than the PNG it contains. The file extension gives no hint.
-
----
-
-## Prompts — only if you go the local/Recraft route
-
-Palette clause:
-```
-Colour palette, strictly: coral #e0522c, teal #14897c, violet #5b4bc4,
-golden yellow #ffc24b, cream background #fffbf5, deep indigo #2e2a63.
-```
-
-Style clause (note: **no grain**, and flatter than before — Recraft's own staff say simpler art is
-the fix for oversized SVGs):
-```
-Flat vector illustration, bold geometric shapes, few colours, large flat colour
-areas, soft rounded corners, clean thick outlines, generous negative space.
-No gradients. No texture. No grain. No shading.
-No text, no letters, no numbers, no words anywhere in the image.
-No photorealism. No 3D render. No drop shadows.
-```
-
-Subjects, one per course:
-- **Inglés** — `two overlapping speech bubbles with a small paper aeroplane between them` · coral dominant
-- **Música** — `an acoustic guitar seen from the front with three rounded sound waves` · teal dominant
-- **Programación** — `a laptop seen straight on with three stacked bars on screen and a small rocket` · violet dominant
-- **Apoyo escolar** — `a sprouting plant in a rounded pot with two gentle speech bubbles above it` · golden dominant
-
-⚠️ Keep the last one **non-clinical** — no stethoscopes, crosses, clipboards or clinic rooms. Per
-`Plan/agents/10-compliance-costed-path.md` the imagery must stay on the education side of the
-regulatory line, exactly as the copy does.
-
-## Still true, and the most important line here
-
-**Do not generate faces for David, Daniel or Elena.** A phone camera in good light beats anything
-these tools produce, and for Elena a generated face beside a real ACESS registration number is the
-worst possible pairing.
+Open it in a text editor. `<path d="M12 4L...` → real vector. `<image href="data:image/png;base64,`
+→ a PNG wearing an SVG costume, larger than the PNG it contains. The extension gives no hint.

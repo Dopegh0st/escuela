@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
 
 interface Props {
   curso: CollectionEntry<'cursos'>;
@@ -33,8 +34,21 @@ const frecuencia = `${d.clasesPorSemana}× por semana · ${d.duracionMin} min`;
 <article class="curso-card">
   <a href={`/cursos/${curso.id}/`} class="curso-portada"
      style={`--desde:${d.portada.desde}; --hasta:${d.portada.hasta}`}
-     aria-hidden="true" tabindex="-1">
-    <span class="curso-emoji">{d.portada.emoji}</span>
+     aria-hidden={d.imagen ? undefined : 'true'}
+     tabindex={d.imagen ? undefined : -1}>
+    {d.imagen ? (
+      <Image
+        src={d.imagen}
+        alt={d.imagenAlt ?? ''}
+        widths={[400, 800]}
+        sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+        loading="lazy"
+        decoding="async"
+        class="curso-img"
+      />
+    ) : (
+      <span class="curso-emoji" aria-hidden="true">{d.portada.emoji}</span>
+    )}
     <span class="curso-materia">{MATERIA_LABEL[d.materia]}</span>
   </a>
 
@@ -97,6 +111,7 @@ const frecuencia = `${d.clasesPorSemana}× por semana · ${d.duracionMin} min`;
     text-decoration: none;
   }
   .curso-emoji { font-size: 3.25rem; line-height: 1; filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.25)); }
+  .curso-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .curso-materia {
     position: absolute;
     left: 0.875rem;
