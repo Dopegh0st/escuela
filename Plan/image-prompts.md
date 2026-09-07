@@ -70,13 +70,49 @@ regulatory line for exactly the same reason the copy does.
 
 ---
 
-## Step 3 — Hero · 1:1
+## Step 3 — Hero · 1:1 · THE BIG ONE
+
+This fills the circular placeholder in the dark indigo hero band — the first thing anyone sees.
+
+**Two hard constraints:**
+- **Square, subject centred, generous margin.** The image is displayed inside a **circle**, so the
+  corners are cut off. Anything important near an edge disappears.
+- **It sits on a DARK indigo band** (`#2e2a63`). Warm, light-toned artwork pops against it; a dark
+  or muddy image vanishes.
+
+### Option A — illustrated learner (recommended)
+
+Warmer and more human than objects, and honest: clearly an illustration, so it is not pretending to
+be a real student or a real teacher.
 
 ```
-Composed inside a circle: four small friendly objects arranged around the centre — a speech bubble,
-an acoustic guitar, a laptop, and a small potted plant — with simple star and dot sparkles between
-them. Balanced, symmetrical, cheerful. Cream background.
+Flat vector-style illustration, square composition, subject centred with generous margin on all
+sides so nothing important sits near the edges. A cheerful young Latin American student with warm
+brown skin and dark hair, seated at a small desk, smiling while looking at an open laptop. An
+acoustic guitar leans against the desk and a small potted plant sits beside it. Simple star and dot
+sparkles float around them. Bold geometric shapes, thick clean outlines, soft rounded corners, large
+flat colour areas, subtle paper grain.
+
+Colour palette, strictly: coral #e0522c, teal #14897c, violet #5b4bc4, golden yellow #ffc24b,
+cream background #fffbf5, deep indigo #2e2a63.
+
+Warm, optimistic, modern children's-education brand. Light and bright so it reads against a dark
+background. No text, no letters, no numbers, no words anywhere. No photorealism. No 3D render.
+No stock-photo look. No drop shadows.
 ```
+
+### Option B — objects only
+
+Safer, and sidesteps any question of depicting a specific person.
+
+```
+Flat vector-style illustration, square composition, arranged inside a circle with generous margin:
+four friendly objects around the centre — a speech bubble, an acoustic guitar, an open laptop, and a
+small potted plant — with simple star and dot sparkles between them. Balanced, symmetrical,
+cheerful. [+ palette] [+ rules]
+```
+
+Save as `src/assets/hero.png`. Tell me when it is in and I will wire it into the hero circle.
 
 ---
 

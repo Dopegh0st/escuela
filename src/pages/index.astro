@@ -70,7 +70,7 @@ const PASOS = [
         </div>
 
         {DATOS.map((d, i) => (
-          <div class:list={['dato', `dato-${i + 1}`]}>
+          <div class:list={['dato', `dato-${i + 1}`, `flota-${i + 1}`]}>
             <span class="dato-emoji" aria-hidden="true">{d.emoji}</span>
             <div>
               <p class="dato-valor">{d.valor}</p>
@@ -84,7 +84,7 @@ const PASOS = [
 
   <!-- ===================== MATERIAS ===================== -->
   <section id="materias" class="container-page section">
-    <div class="section-cabecera">
+    <div class="section-cabecera animate-on-scroll">
       <p class="eyebrow">Qué enseñamos</p>
       <h2>Escoge lo que te late</h2>
       <p class="section-lede">
@@ -93,9 +93,9 @@ const PASOS = [
     </div>
 
     <div class="grid-materias">
-      {MATERIAS.map((m) => (
+      {MATERIAS.map((m, i) => (
         <article
-          class:list={['materia', !m.disponible && 'materia-pronto']}
+          class:list={['materia', 'animate-on-scroll', `delay-${(i % 4) + 1}`, !m.disponible && 'materia-pronto']}
           style={`--c:${m.color}; --cs:${m.colorSoft}`}
         >
           <span class="materia-emoji" aria-hidden="true">{m.emoji}</span>
@@ -115,7 +115,7 @@ const PASOS = [
   <!-- ===================== PRUEBA GRATIS ===================== -->
   <section id="prueba" class="prueba">
     <div class="container-page">
-      <div class="section-cabecera prueba-cabecera">
+      <div class="section-cabecera prueba-cabecera animate-on-scroll">
         <p class="eyebrow">Sin costo, sin tarjeta</p>
         <h2>Escoge con quién quieres tu primera clase</h2>
         <p class="section-lede">
@@ -126,7 +126,7 @@ const PASOS = [
 
       <div class="grid-prueba">
         {PROFESORES.filter((p) => p.disponible).map((p, i) => (
-          <article class="prof-prueba" style={`--c:${['var(--color-primary)','var(--color-grape)'][i % 2]}`}>
+          <article class:list={['prof-prueba', 'animate-on-scroll', `delay-${i + 1}`]} style={`--c:${['var(--color-primary)','var(--color-grape)'][i % 2]}`}>
             <div class="pp-foto" aria-hidden="true">{p.nombre.charAt(0)}</div>
             <h3>{p.nombre}</h3>
             <p class="pp-materia">{p.materia}</p>
@@ -139,7 +139,7 @@ const PASOS = [
           </article>
         ))}
 
-        <article class="prof-prueba prof-pronto">
+        <article class="prof-prueba prof-pronto animate-on-scroll delay-3">
           <div class="pp-foto pp-foto-pronto" aria-hidden="true">🌱</div>
           <h3>Elena</h3>
           <p class="pp-materia">Terapia de lenguaje</p>
@@ -162,14 +162,14 @@ const PASOS = [
   <!-- ===================== CÓMO FUNCIONA ===================== -->
   <section class="section-alt">
     <div class="container-page section">
-      <div class="section-cabecera">
+      <div class="section-cabecera animate-on-scroll">
         <p class="eyebrow">Así de simple</p>
         <h2>Empezar toma tres pasos</h2>
       </div>
 
       <div class="pasos">
-        {PASOS.map((p) => (
-          <article class="paso" style={`--c:${p.color}`}>
+        {PASOS.map((p, i) => (
+          <article class:list={['paso', 'animate-on-scroll', `delay-${i + 1}`]} style={`--c:${p.color}`}>
             <span class="paso-fantasma" aria-hidden="true">{p.n}</span>
             <div class="paso-contenido">
               <h3>{p.titulo}</h3>
@@ -183,7 +183,7 @@ const PASOS = [
 
   <!-- ===================== PROFESORES ===================== -->
   <section id="profesores" class="container-page section">
-    <div class="section-cabecera">
+    <div class="section-cabecera animate-on-scroll">
       <p class="eyebrow">El equipo</p>
       <h2>Quiénes te enseñan</h2>
       <p class="section-lede">
@@ -193,7 +193,7 @@ const PASOS = [
 
     <div class="grid-profes">
       {PROFESORES.map((p, i) => (
-        <article class="profe" style={`--c:${['var(--color-primary)','var(--color-grape)','var(--color-accent)'][i % 3]}`}>
+        <article class:list={['profe', 'animate-on-scroll', `delay-${i + 1}`]} style={`--c:${['var(--color-primary)','var(--color-grape)','var(--color-accent)'][i % 3]}`}>
           <div class="profe-foto" aria-hidden="true">{p.nombre.charAt(0)}</div>
           <h3>{p.nombre}</h3>
           <p class="profe-cred">{p.credencial}</p>
@@ -206,7 +206,7 @@ const PASOS = [
   <!-- ===================== PRECIO ===================== -->
   <section id="precio" class="section-alt">
     <div class="container-page section">
-      <div class="section-cabecera">
+      <div class="section-cabecera animate-on-scroll">
         <p class="eyebrow">Precio</p>
         <h2>Un solo precio, sin sorpresas</h2>
         <p class="section-lede">
@@ -214,7 +214,7 @@ const PASOS = [
         </p>
       </div>
 
-      <div class="precio-card">
+      <div class="precio-card animate-on-scroll">
         <span class="badge badge-primary">Paquete mensual</span>
         <p class="precio-monto">
           <span class="precio-sim">$</span>{PRECIO_PAQUETE}
@@ -239,12 +239,12 @@ const PASOS = [
 
   <!-- ===================== FAQ ===================== -->
   <section class="container-page section">
-    <div class="section-cabecera">
+    <div class="section-cabecera animate-on-scroll">
       <p class="eyebrow">Dudas</p>
       <h2>Preguntas frecuentes</h2>
     </div>
 
-    <div class="faq">
+    <div class="faq animate-on-scroll">
       <details>
         <summary>¿Cuántos datos consume una clase?</summary>
         <p>Una clase de {MINUTOS_POR_CLASE} minutos usa cerca de 350&nbsp;MB en calidad estándar. Si tu plan es limitado, puedes bajar la calidad y consumir mucho menos.</p>
@@ -271,7 +271,7 @@ const PASOS = [
   <!-- ===================== CTA FINAL (dark band) ===================== -->
   <section class="cta-final">
     <div class="cta-blob" aria-hidden="true"></div>
-    <div class="container-page cta-inner">
+    <div class="container-page cta-inner animate-on-scroll">
       <h2>¿Empezamos?</h2>
       <p>Cuéntanos qué quieres aprender. Te respondemos hoy mismo, sin compromiso.</p>
       <a class="btn btn-sun" href={waLink()}>

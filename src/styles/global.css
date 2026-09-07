@@ -90,12 +90,60 @@
 
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
+/* ---------------------------------------------------------------------------
+   Motion — scroll reveal + floating cards
+
+   Two failure modes this MUST NOT have, because both hide content from real
+   people:
+   1. No JS -> elements stuck at opacity 0. Solved by only arming the hidden
+      state under .js-anim, which an inline script sets before first paint.
+   2. prefers-reduced-motion -> the global animation kill below would freeze
+      elements at opacity 0 forever. Solved by explicitly restoring them.
+   The second matters especially here: this platform serves children with
+   learning difficulties, and vestibular sensitivity is common.
+   ------------------------------------------------------------------------ */
+
+.js-anim .animate-on-scroll {
+  opacity: 0;
+  transform: translateY(80px);
+}
+.js-anim .animate-on-scroll.is-visible {
+  animation: fadeInUp 0.8s ease forwards;
+}
+.animate-on-scroll.delay-1 { animation-delay: 0.1s; }
+.animate-on-scroll.delay-2 { animation-delay: 0.2s; }
+.animate-on-scroll.delay-3 { animation-delay: 0.3s; }
+.animate-on-scroll.delay-4 { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  0%   { opacity: 0; transform: translateY(80px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Three different durations so the cards never bob in unison. */
+@keyframes flotar1 { 0%, 100% { transform: translateY(0); }    50% { transform: translateY(-10px); } }
+@keyframes flotar2 { 0%, 100% { transform: translateY(0); }    50% { transform: translateY(8px); } }
+@keyframes flotar3 { 0%, 100% { transform: translateY(0); }    50% { transform: translateY(-10px); } }
+
+.flota-1 { animation: flotar1 3s ease-in-out infinite; }
+.flota-2 { animation: flotar2 3.5s ease-in-out infinite; }
+.flota-3 { animation: flotar3 4s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
+  /* Restore anything the rule above would have left mid-animation. */
+  .js-anim .animate-on-scroll,
+  .js-anim .animate-on-scroll.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .flota-1, .flota-2, .flota-3 { animation: none !important; }
 }
 
 body {
