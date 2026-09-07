@@ -4,15 +4,17 @@ import { Image } from 'astro:assets';
 import heroImg from '../assets/hero.png';
 import {
   waLink, MATERIAS, PROFESORES,
-  PRECIO_PAQUETE, CLASES_POR_MES, MINUTOS_POR_CLASE, MINUTOS_PRUEBA,
+  PRECIO_CURSO_GRUPO, PRECIO_CURSO_INDIVIDUAL, PRECIO_POR_CLASE,
+  CLASES_POR_CURSO, CLASES_POR_SEMANA, SEMANAS_POR_CURSO, CUPO_MAXIMO,
+  MINUTOS_POR_CLASE, MINUTOS_PRUEBA,
 } from '../config';
 
 // Floating stat cards, as in the reference theme — but every number here is
-// TRUE. "Máximo 6 por grupo" is a stronger claim to an Ecuadorian parent than
+// TRUE. "Máximo 8 por grupo" is a stronger claim to an Ecuadorian parent than
 // "120k+ students" anyway, and it is one we can actually keep.
 const DATOS = [
   { emoji: '🎁', valor: 'Primera clase', etiqueta: 'gratis, 1 a 1' },
-  { emoji: '👋', valor: 'Máximo 6', etiqueta: 'por grupo' },
+  { emoji: '👋', valor: 'Máximo 8', etiqueta: 'por grupo' },
   { emoji: '🎓', valor: 'Titulados', etiqueta: 'todos los profes' },
 ];
 
@@ -215,32 +217,58 @@ const PASOS = [
     <div class="container-page section">
       <div class="section-cabecera animate-on-scroll">
         <p class="eyebrow">Precio</p>
-        <h2>Un solo precio, sin sorpresas</h2>
+        <h2>Precios claros, sin sorpresas</h2>
         <p class="section-lede">
-          La mayoría de academias esconde el precio detrás de un formulario. Nosotros no.
+          La mayoría de academias esconde el precio detrás de un formulario. Nosotros no. Pagas el curso completo una sola vez.
         </p>
       </div>
 
-      <div class="precio-card animate-on-scroll">
-        <span class="badge badge-primary">Paquete mensual</span>
-        <p class="precio-monto">
-          <span class="precio-sim">$</span>{PRECIO_PAQUETE}
-          <span class="precio-per">/ mes</span>
-        </p>
-        <ul class="precio-lista">
-          <li>{CLASES_POR_MES} clases en vivo de {MINUTOS_POR_CLASE} minutos</li>
-          <li>Grupos de máximo 6 personas</li>
-          <li>Siempre el mismo profesor</li>
-          <li>Horario que tú escoges</li>
-          <li>Materiales incluidos</li>
-          <li>Sin contrato ni permanencia</li>
-          <li><strong>La primera clase va por nuestra cuenta</strong></li>
-        </ul>
-        <a class="btn btn-primary ancho" href="#prueba">
-          Empezar con la clase gratis <span class="btn-flecha" aria-hidden="true">↗</span>
-        </a>
-        <p class="precio-nota">¿Prefieres pagar por transferencia? También se puede.</p>
+      <div class="precios">
+        <div class="precio-card animate-on-scroll">
+          <span class="badge badge-primary">Curso en grupo</span>
+          <p class="precio-monto">
+            <span class="precio-sim">$</span>{PRECIO_CURSO_GRUPO}
+            <span class="precio-per">el curso</span>
+          </p>
+          <p class="precio-unidad">Son ${PRECIO_POR_CLASE} por clase</p>
+          <ul class="precio-lista">
+            <li>{CLASES_POR_CURSO} clases en vivo de {MINUTOS_POR_CLASE} minutos</li>
+            <li>{CLASES_POR_SEMANA} veces por semana durante {SEMANAS_POR_CURSO} semanas</li>
+            <li>Grupos de máximo {CUPO_MAXIMO} personas</li>
+            <li>Siempre el mismo profesor titulado</li>
+            <li>Materiales incluidos</li>
+            <li>Un solo pago, sin mensualidades</li>
+            <li><strong>La primera clase va por nuestra cuenta</strong></li>
+          </ul>
+          <a class="btn btn-primary ancho" href="#prueba">
+            Empezar con la clase gratis <span class="btn-flecha" aria-hidden="true">↗</span>
+          </a>
+        </div>
+
+        <div class="precio-card precio-card-alt animate-on-scroll delay-2">
+          <span class="badge badge-grape">Curso individual</span>
+          <p class="precio-monto precio-monto-alt">
+            <span class="precio-sim">$</span>{PRECIO_CURSO_INDIVIDUAL}
+            <span class="precio-per">el curso</span>
+          </p>
+          <p class="precio-unidad">Son ${(PRECIO_CURSO_INDIVIDUAL / CLASES_POR_CURSO).toFixed(2)} por clase</p>
+          <ul class="precio-lista">
+            <li>{CLASES_POR_CURSO} clases en vivo de {MINUTOS_POR_CLASE} minutos</li>
+            <li><strong>Tú solo con el profesor</strong>, nadie más</li>
+            <li>El horario lo pones tú</li>
+            <li>Avanzas a tu ritmo, sin esperar al grupo</li>
+            <li>Materiales incluidos</li>
+            <li>Un solo pago, sin mensualidades</li>
+          </ul>
+          <a class="btn btn-secondary ancho" href="#prueba">
+            Probar primero, gratis
+          </a>
+        </div>
       </div>
+
+      <p class="precio-nota">
+        Pagas con tarjeta, transferencia o efectivo. Sin contrato y sin permanencia.
+      </p>
     </div>
   </section>
 
@@ -261,8 +289,8 @@ const PASOS = [
         <p>No. Las clases funcionan desde el celular. Para programación sí recomendamos una computadora, aunque puedes empezar sin ella.</p>
       </details>
       <details>
-        <summary>¿Puedo cancelar cuando quiera?</summary>
-        <p>Sí. El paquete es mensual y no tiene permanencia. Si no quieres renovar, nos avisas antes de que termine el mes.</p>
+        <summary>¿Tengo que pagar todos los meses?</summary>
+        <p>No. Pagas el curso completo una sola vez y ya está. Cuando termine, decides con calma si quieres tomar otro: no hay mensualidad ni permanencia.</p>
       </details>
       <details>
         <summary>¿Las clases son grabadas o en vivo?</summary>
@@ -511,6 +539,17 @@ const PASOS = [
   @media (min-width: 768px) { .grid-profes { grid-template-columns: repeat(3, 1fr); } }
 
   /* ---- Precio ---- */
+  .precios { display: grid; grid-template-columns: 1fr; gap: 1.5rem; align-items: start; }
+  @media (min-width: 820px) { .precios { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 56rem; } }
+  .precio-unidad {
+    font-size: var(--text-sm);
+    color: var(--color-ink-faint);
+    margin: -0.75rem 0 1.5rem;
+    font-weight: 600;
+  }
+  .precio-card-alt { border-color: var(--color-grape-soft); }
+  .precio-monto-alt { color: var(--color-grape); }
+
   .precio-card {
     max-width: 31rem;
     background: var(--color-raised);

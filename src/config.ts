@@ -22,10 +22,28 @@ export const SITE = {
 export const waLink = (msg: string = SITE.whatsappMessage) =>
   `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 
-/** Live-class package price. Benchmarked against AMW Academy's proven $120/mes. */
-export const PRECIO_PAQUETE = 120;
-export const CLASES_POR_MES = 4;
-export const MINUTOS_POR_CLASE = 40; // 40 min keeps Zoom's free tier invisible
+/**
+ * Course pricing — fixed scope, one payment, no subscription.
+ *
+ * Anchored on a real local transaction: a Roblox coding course for a child sold
+ * at $20 for 6 classes (2/week x 3 weeks) = $3.33/class. An earlier $120/mes
+ * package worked out at $30/class -- 9x the market -- and would have scared off
+ * exactly the buyer it was aimed at.
+ *
+ * Selling a COURSE rather than a subscription also removes a real blocker:
+ * PayPhone has no card-on-file, so a monthly product had no way to charge month
+ * two. A fixed-price course sidesteps that instead of engineering around it.
+ */
+export const PRECIO_CURSO_GRUPO = 25;      // just above the $20 anchor: smaller groups, titled teachers
+export const PRECIO_CURSO_INDIVIDUAL = 60; // $10/class, inside the verified $9-16/h 1-to-1 band
+export const CLASES_POR_CURSO = 6;
+export const CLASES_POR_SEMANA = 2;
+export const SEMANAS_POR_CURSO = 3;
+export const CUPO_MAXIMO = 8;              // 6 was too thin once the teacher's share comes out
+export const MINUTOS_POR_CLASE = 40;       // 40 min keeps Zoom's free tier invisible
+
+/** Lead with this in the UI — a lump sum reframed as obviously affordable. */
+export const PRECIO_POR_CLASE = (PRECIO_CURSO_GRUPO / CLASES_POR_CURSO).toFixed(2);
 
 /**
  * Free first class, 1-on-1 with the teacher the visitor picks.

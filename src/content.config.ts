@@ -24,7 +24,7 @@ const cursos = defineCollection({
     clasesPorSemana: z.number(),
     duracionMin: z.number(),
     precio: z.number(),
-    precioUnidad: z.enum(['mes', 'clase']).default('mes'),
+    precioUnidad: z.enum(['curso', 'mes', 'clase']).default('curso'),
     edadMin: z.number().optional(),
     edadMax: z.number().optional(),
     // The gradient + emoji cover is the FALLBACK, kept so the build never breaks

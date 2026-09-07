@@ -6,11 +6,11 @@ materia: "ingles"
 nivel: "principiante"
 formato: "grupal"
 cupoMin: 3
-cupoMax: 6
+cupoMax: 8
 clasesPorSemana: 2
 duracionMin: 40
-precio: 120
-precioUnidad: "mes"
+precio: 25
+precioUnidad: "curso"
 portada:
   emoji: "💬"
   desde: "#b4530e"

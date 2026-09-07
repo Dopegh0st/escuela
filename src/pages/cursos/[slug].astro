@@ -50,7 +50,7 @@ const jsonLd = {
     '@type': 'Offer',
     price: d.precio,
     priceCurrency: 'USD',
-    category: d.precioUnidad === 'mes' ? 'Suscripción mensual' : 'Por clase',
+    category: d.precioUnidad === 'curso' ? 'Curso completo' : d.precioUnidad === 'mes' ? 'Suscripción mensual' : 'Por clase',
     availability: 'https://schema.org/InStock',
   },
 };
@@ -102,11 +102,15 @@ const jsonLd = {
       <aside class="panel">
         <div class="card panel-card">
           <p class="panel-precio">
-            <span class="sim">$</span>{d.precio}<span class="unidad">/ {d.precioUnidad}</span>
+            <span class="sim">$</span>{d.precio}<span class="unidad">el {d.precioUnidad}</span>
+          </p>
+          <p class="panel-porclase">
+            Son ${(d.precio / (d.clasesPorSemana * 3)).toFixed(2)} por clase
           </p>
           <dl class="panel-datos">
             <div><dt>Formato</dt><dd>{formato}</dd></div>
-            <div><dt>Frecuencia</dt><dd>{d.clasesPorSemana}× por semana</dd></div>
+            <div><dt>Clases</dt><dd>{d.clasesPorSemana * 3} en total</dd></div>
+            <div><dt>Frecuencia</dt><dd>{d.clasesPorSemana}× por semana, 3 semanas</dd></div>
             <div><dt>Duración</dt><dd>{d.duracionMin} minutos</dd></div>
             <div><dt>Profesor</dt><dd>{d.profesor}</dd></div>
             <div><dt>Nivel</dt><dd>{NIVEL_LABEL[d.nivel]}</dd></div>
@@ -202,6 +206,7 @@ const jsonLd = {
     letter-spacing: -0.03em;
   }
   .sim { font-size: var(--text-lg); vertical-align: super; }
+  .panel-porclase { font-size: var(--text-sm); color: var(--color-ink-faint); font-weight: 600; margin: -0.75rem 0 1.25rem; }
   .unidad { font-size: var(--text-base); font-weight: 500; color: var(--color-ink-faint); letter-spacing: 0; margin-left: 0.25rem; }
 
   .panel-datos { margin: 0 0 1.5rem; display: grid; gap: 0.625rem; }

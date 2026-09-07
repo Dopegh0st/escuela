@@ -403,3 +403,58 @@ identity. Every repo for this project needs **repo-local** `user.name` / `user.e
 Never let a commit land under the Motion Colors identity.
 
 Cloudflare: wrangler is logged in as of 2026-09-06.
+
+## D14 — Pricing: course-based and far cheaper. $120/mes is dead.  ⟵ 2026-09-07
+
+**Founder's own transaction, the most reliable market data in this whole project:**
+
+> "we got our kid in a roblox course to program custom maps and mini games they charged us $20 for
+> 2 clases per week and 3 weeks total, $20 was the payment for the full course"
+
+**$20 ÷ 6 classes = $3.33 per class.** The site was priced at $120/mes for 4 classes = **$30 per
+class — 9× the real local anchor.** It would have scared away exactly the buyer it was aimed at.
+
+### Why the earlier research pointed the wrong way
+
+The research anchors were real but were the wrong *segment*:
+
+| Anchor | Segment | Per class |
+|---|---|---|
+| $9–16/hour (Preply, Superprof, tusclasesparticulares) | **1-to-1 private tutoring** | $6–11 |
+| $120/mes for 4 classes (AMW Academy) | **1-to-1 adult language, monthly** | $30 |
+| **$20 for 6 classes (founder's actual purchase)** | **kids' group course, fixed scope** | **$3.33** |
+
+Both are true. They are different products. The site was aimed at children's group classes while
+carrying 1-to-1 adult subscription pricing.
+
+### The structural lesson, which matters as much as the number
+
+They bought a **course**, not a **subscription** — fixed scope, fixed price, clear end date, one
+payment. That is easier to buy at every level, and it **eliminates the recurring-billing gap**
+flagged as a blocker in MASTER-PLAN §5: PayPhone has no card-on-file, so a monthly product had no
+way to charge month two. A fixed-price course sidesteps the problem entirely rather than working
+around it.
+
+### New pricing
+
+| Product | Scope | Format | Price | Per class |
+|---|---|---|---|---|
+| **Curso en grupo** | 6 clases de 40 min, 2×/semana, 3 semanas | grupo de hasta 8 | **$25** | $4.17 |
+| **Curso individual** | 6 clases de 40 min, 2×/semana, 3 semanas | 1 a 1 | **$60** | $10.00 |
+
+- Group sits just above the $20 anchor, justified by **smaller groups and titled teachers** — a
+  modest premium is defensible, a 6× one is not.
+- Individual lands at $10/class, inside the verified $9–16/hour 1-to-1 market band.
+- **Lead with the per-class number** in the UI (`$25 el curso · $4 por clase`). It reframes a lump
+  sum as obviously affordable against ~$200/month household discretionary income.
+
+### Consequences the plan must absorb
+
+- **Group size must rise from 6 to 8.** At $25 × 8 = $200 per cohort over ~4 teacher-hours = $50/h
+  gross. At 6 students it is $37/h, which is too thin once the teacher's share comes out.
+- **Revenue per cohort is small.** 20 students ≈ $500 per 3-week cycle. Volume and repeat
+  enrolment, not price, are the growth levers. Plan accordingly and do not pretend otherwise.
+- **The capacity model in `Plan/agents/08-capacity-economics.md` is now wrong** — it was built on
+  the $120/mes assumption and needs redoing against these numbers.
+- Free first class (D-prueba, 25 min 1-to-1) stays. Against a $25 course it is a proportionally
+  bigger giveaway, so the 25-minute length matters more, not less.

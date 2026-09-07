@@ -5,10 +5,10 @@ profesor: "David"
 materia: "musica"
 nivel: "principiante"
 formato: "individual"
-clasesPorSemana: 1
+clasesPorSemana: 2
 duracionMin: 40
-precio: 120
-precioUnidad: "mes"
+precio: 60
+precioUnidad: "curso"
 portada:
   emoji: "🎸"
   desde: "#0e6b52"

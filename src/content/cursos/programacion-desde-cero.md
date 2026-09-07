@@ -9,8 +9,8 @@ cupoMin: 3
 cupoMax: 8
 clasesPorSemana: 2
 duracionMin: 40
-precio: 120
-precioUnidad: "mes"
+precio: 25
+precioUnidad: "curso"
 portada:
   emoji: "💻"
   desde: "#2a4c8f"
