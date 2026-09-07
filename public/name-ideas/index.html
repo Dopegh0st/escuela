@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="es-EC">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cómo se va a llamar · Escuela</title>
+<!-- Internal working page: keep it out of search results. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+  :root {
+    --paper:        #f5f7f9;
+    --raised:       #ffffff;
+    --ink:          #11161e;
+    --ink-2:        #4b5563;
+    --ink-3:        #8b95a3;
+    --rule:         #dee3ea;
+    --rule-soft:    #eceff4;
+    --accent:       #2545c8;
+    --accent-soft:  #e9edfc;
+    --ok:           #16624a;
+    --ok-soft:      #e3f1ea;
+    --warn:         #8a5608;
+    --warn-soft:    #faeedb;
+    --stop:         #9e1f27;
+    --stop-soft:    #fae9ea;
+
+    --serif: "Source Serif 4", ui-serif, Georgia, serif;
+    --grot:  "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --mono:  ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper:       #0d1117;
+      --raised:      #151b24;
+      --ink:         #e8ecf2;
+      --ink-2:       #a8b2c1;
+      --ink-3:       #6b7686;
+      --rule:        #262e3a;
+      --rule-soft:   #1d242e;
+      --accent:      #8aa2ff;
+      --accent-soft: #1a2340;
+      --ok:          #6ecfa6;
+      --ok-soft:     #12291f;
+      --warn:        #e0b062;
+      --warn-soft:   #2a2114;
+      --stop:        #f08b91;
+      --stop-soft:   #2c1618;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:       #0d1117;
+    --raised:      #151b24;
+    --ink:         #e8ecf2;
+    --ink-2:       #a8b2c1;
+    --ink-3:       #6b7686;
+    --rule:        #262e3a;
+    --rule-soft:   #1d242e;
+    --accent:      #8aa2ff;
+    --accent-soft: #1a2340;
+    --ok:          #6ecfa6;
+    --ok-soft:     #12291f;
+    --warn:        #e0b062;
+    --warn-soft:   #2a2114;
+    --stop:        #f08b91;
+    --stop-soft:   #2c1618;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 68rem; margin-inline: auto; padding: 0 1.5rem 6rem; }
+
+  /* ---------------- Header ---------------- */
+  header.top {
+    border-bottom: 1px solid var(--rule);
+    padding: 3.5rem 0 2rem;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--grot);
+    font-weight: 800;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 1.1875rem;
+    color: var(--ink-2);
+    max-width: 58ch;
+    margin: 0 0 1.75rem;
+  }
+
+  .warn-box {
+    display: flex;
+    gap: 0.875rem;
+    background: var(--warn-soft);
+    border-left: 3px solid var(--warn);
+    padding: 1rem 1.25rem;
+    max-width: 62ch;
+  }
+  .warn-box p { margin: 0; font-size: 0.9375rem; color: var(--ink-2); }
+  .warn-box strong { color: var(--ink); }
+
+  /* ---------------- Toolbar ---------------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+    padding: 0.75rem 0;
+    margin-bottom: 2.5rem;
+  }
+  .count {
+    font-family: var(--mono); font-size: 0.75rem;
+    color: var(--ink-3); margin-right: auto;
+  }
+  .count b { color: var(--accent); font-size: 0.875rem; }
+  button.filtro {
+    font-family: var(--grot); font-weight: 600; font-size: 0.8125rem;
+    background: var(--raised); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 2px;
+    padding: 0.4375rem 0.875rem; cursor: pointer;
+  }
+  button.filtro:hover { border-color: var(--accent); color: var(--accent); }
+  button.filtro[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------------- Sections ---------------- */
+  section { margin-bottom: 3.5rem; }
+  .sec-head { border-bottom: 1px solid var(--rule); padding-bottom: 0.625rem; margin-bottom: 1.75rem; }
+  h2 {
+    font-family: var(--grot); font-weight: 600;
+    font-size: 1.375rem; letter-spacing: -0.015em;
+    margin: 0 0 0.25rem;
+  }
+  .sec-head p { margin: 0; font-size: 0.9375rem; color: var(--ink-3); max-width: 62ch; }
+
+  /* ---------------- Specimen rows ---------------- */
+  .lista { display: grid; gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); }
+
+  .fila {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+    background: var(--raised);
+    padding: 1.5rem;
+  }
+  @media (min-width: 760px) {
+    .fila { grid-template-columns: 15rem 1fr auto; align-items: start; gap: 1.75rem; }
+  }
+
+  .specimen { min-width: 0; }
+  .nombre {
+    font-family: var(--grot);
+    font-weight: 400;
+    font-size: 2.25rem;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    margin: 0 0 0.375rem;
+    color: var(--ink);
+  }
+  .origen {
+    font-family: var(--mono);
+    font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0;
+  }
+  .significado {
+    font-style: italic; font-size: 0.9375rem; color: var(--ink-2);
+    margin: 0.5rem 0 0;
+  }
+
+  .razones { display: grid; gap: 0.5rem; min-width: 0; }
+  .razon { display: grid; grid-template-columns: 1.25rem 1fr; gap: 0.5rem; font-size: 0.9375rem; }
+  .razon .marca { font-family: var(--mono); font-weight: 700; line-height: 1.5; }
+  .pro .marca { color: var(--ok); }
+  .contra .marca { color: var(--stop); }
+  .razon p { margin: 0; color: var(--ink-2); }
+
+  .acciones { display: flex; align-items: center; gap: 0.75rem; }
+
+  .chip {
+    font-family: var(--mono); font-size: 0.6875rem;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.25rem 0.5rem; white-space: nowrap;
+  }
+  .chip-ok   { background: var(--ok-soft); color: var(--ok); }
+  .chip-warn { background: var(--warn-soft); color: var(--warn); }
+  .chip-stop { background: var(--stop-soft); color: var(--stop); }
+
+  .estrella {
+    background: none; border: 1px solid var(--rule); border-radius: 2px;
+    width: 2rem; height: 2rem; cursor: pointer;
+    font-size: 0.9375rem; line-height: 1; color: var(--ink-3);
+    display: grid; place-items: center; flex: none;
+  }
+  .estrella:hover { border-color: var(--accent); color: var(--accent); }
+  .estrella[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .fila.oculta { display: none; }
+
+  /* ---------------- Blocked ---------------- */
+  .bloqueado .nombre { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  /* ---------------- Footer ---------------- */
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.75rem; margin-top: 3rem;
+    font-size: 0.875rem; color: var(--ink-3);
+  }
+  footer p { margin: 0 0 0.5rem; max-width: 62ch; }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--rule-soft); padding: 0.1em 0.35em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Escuela en línea · Ecuador · Borrador de marca</p>
+  <h1>Cómo se va a llamar</h1>
+  <p class="lede">
+    Treinta y seis candidatos, agrupados por el territorio del que salieron. Cada uno
+    con lo que gana y lo que arriesga — sin adornos, porque el que gane va a estar
+    diez años en la puerta.
+  </p>
+  <div class="warn-box">
+    <span aria-hidden="true">⚠</span>
+    <p>
+      <strong>Disponibilidad sin verificar.</strong> La ronda de verificación de dominios,
+      marcas SENADI y colisiones no llegó a correr. Los choques que sí aparecen abajo
+      salieron de la búsqueda inicial. Antes de comprometerse con un nombre hay que
+      revisar <code>.ec</code>, <code>.com.ec</code>, el handle de Instagram y SENADI Clase 41.
+    </p>
+  </div>
+</header>
+
+<div class="toolbar">
+  <p class="count"><b id="n-lista">0</b> en tu lista · 36 candidatos</p>
+  <button class="filtro" id="btn-lista" type="button" aria-pressed="false">Ver solo mi lista</button>
+  <button class="filtro" id="btn-limpiar" type="button">Limpiar</button>
+</div>
+
+<!-- ===================== FAVORITOS ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>Los cinco que yo defendería</h2>
+    <p>No son los más bonitos: son los que resuelven la tensión difícil — una madre eligiendo terapia de lenguaje para su hijo de siete años y un chico de 24 aprendiendo a programar, en la misma palabra.</p>
+  </div>
+  <div class="lista" data-grupo="top">
+
+    <article class="fila" data-nombre="Cordada">
+      <div class="specimen">
+        <p class="nombre">Cordada</p>
+        <p class="origen">Montañismo · español</p>
+        <p class="significado">La cordada: el grupo de escaladores atados a una misma cuerda.</p>
+      </div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Pasa las dos mitades de la prueba con <em>una sola</em> imagen, que es rarísimo. La madre oye: alguien sostiene la cuerda de mi hijo. El de 24 oye: no me van a cargar, me atan a alguien que ya conoce la ruta.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Es un término algo especializado: quien no escala conoce “cuerda”, pero quizá no tiene “cordada” como palabra activa.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Sin choque conocido</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Cordada a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Cauce">
+      <div class="specimen">
+        <p class="nombre">Cauce</p>
+        <p class="origen">Naturaleza · español</p>
+        <p class="significado">El lecho del río — no el agua, el canal que le da dirección.</p>
+      </div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El mejor calce semántico de la lista. Una terapista <em>encauza</em> el lenguaje; un profesor <em>encauza</em> a un estudiante. La metáfora cubre lo clínico y lo pedagógico sin forzar nada.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>El seseo ecuatoriano deja escribirlo “cause”. Por teléfono alguien va a teclear mal.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Riesgo de dictado</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Cauce a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Andamio">
+      <div class="specimen">
+        <p class="nombre">Andamio</p>
+        <p class="origen">Metáfora · español</p>
+        <p class="significado">La estructura temporal que te sostiene mientras construyes, y que después se quita.</p>
+      </div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Es el único candidato cuya metáfora <em>es</em> la pedagogía: “andamiaje” es el término real en teoría del aprendizaje. Cualquier terapista o docente lo reconoce al instante, y la madre oye una promesa concreta — algo firme que sostiene y luego se retira.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La lectura literal es fuerte: buscar “andamio” en Ecuador trae empresas de alquiler de andamios.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Ruido en búsqueda</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Andamio a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Tamia">
+      <div class="specimen">
+        <p class="nombre">Tamia</p>
+        <p class="origen">Kichwa ecuatoriano</p>
+        <p class="significado">Lluvia. <em>Tamya</em>, castellanizado como tamia.</p>
+      </div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El dictado más limpio de toda la lista: T-A-M-I-A. Cinco letras, todas fonéticas en español, sin tilde, sin ñ, sin ambigüedad de k/c ni ll/l. Nada que aclarar.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Se lee como nombre de mujer, así que parte de la gente va a asumir que Tamia <em>es</em> la terapista.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Sin choque conocido</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Tamia a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Arupo">
+      <div class="specimen">
+        <p class="nombre">Arupo</p>
+        <p class="origen">Árbol nativo · Ecuador</p>
+        <p class="significado">El árbol que florece rosado en las calles de Quito.</p>
+      </div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Ortografía a prueba de balas: cinco letras, sin h, sin ñ, sin tilde, sin b/v, sin c/s, sin ll/y. Se dice una vez por WhatsApp y llega bien escrito. Ecuatoriano sin ser postal turística.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La palabra no está virgen: hay un restaurante El Arupo y una tienda El Arupo en Quito.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Uso previo local</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Arupo a mi lista">★</button></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ===================== ESPAÑOL METÁFORA ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>Palabras del español, usadas como metáfora</h2>
+    <p>Sustantivos que un ecuatoriano ya posee emocionalmente, puestos a trabajar de otra manera.</p>
+  </div>
+  <div class="lista">
+
+    <article class="fila" data-nombre="Esmero">
+      <div class="specimen"><p class="nombre">Esmero</p><p class="origen">Español</p><p class="significado">El cuidado atento que alguien pone en hacer bien una cosa.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El nombre más cálido de la lista y la mejor respuesta a la pregunta que la madre de verdad se hace, que no es “¿están capacitados?” sino “¿van a cuidar a mi hijo?”.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Apenas pasa la mitad joven: es artesanal y algo anticuado.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Sin choque conocido</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Esmero a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Telar">
+      <div class="specimen"><p class="nombre">Telar</p><p class="origen">Español</p><p class="significado">El bastidor donde hilos separados se cruzan en una sola tela.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El mejor argumento estructural de por qué una sola marca puede sostener inglés, música, programación y terapia: hilos distintos, una tela.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La lectura textil es transparente y Ecuador ya tiene negocios que viven de ella (Ruta del Telar, Otavalo).</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Lectura literal fuerte</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Telar a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Aplomo">
+      <div class="specimen"><p class="nombre">Aplomo</p><p class="origen">Español</p><p class="significado">Serenidad y seguridad al hablar. De “a plomo”, la plomada del albañil.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Nombra lo que las dos audiencias están comprando en secreto: la madre no compra fonemas, compra que su hijo hable sin miedo. La etimología da una historia para diez años.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>El registro es adulto; funciona mejor para el estudiante de 24 que para un niño de siete.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Sin choque conocido</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Aplomo a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Madera">
+      <div class="specimen"><p class="nombre">Madera</p><p class="origen">Español</p><p class="significado">De <em>materia</em>: la sustancia de la que algo está hecho. <em>Tienes madera.</em></p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El modismo es la marca entera en tres palabras: <em>tienes madera</em>. Dice que el potencial ya está en el estudiante y que el trabajo de la escuela es labrarlo.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La disponibilidad probablemente lo mata: es un sustantivo comunísimo, con carpinterías y madereras por todo lado.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Disponibilidad dudosa</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Madera a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Rumbo">
+      <div class="specimen"><p class="nombre">Rumbo</p><p class="origen">Español · náutico</p><p class="significado">La dirección que un barco sostiene.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El más fácil de deletrear de toda la lista: dos sílabas, cinco letras, imposible equivocarse por teléfono.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Es el más genérico: “rumbo” es el sustantivo motivacional por defecto en español.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Genérico</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Rumbo a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Caudal">
+      <div class="specimen"><p class="nombre">Caudal</p><p class="origen">Español</p><p class="significado">El volumen de agua que lleva un río — y también un acervo de conocimiento.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El modismo hace el trabajo gratis: “caudal de conocimientos” ya existe, así que el significado viene preinstalado.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Sesga a lo técnico: es la palabra impresa en los medidores de agua.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Registro técnico</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Caudal a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Rama">
+      <div class="specimen"><p class="nombre">Rama</p><p class="origen">Español</p><p class="significado">Branch. El español ya la usa para campos de estudio: “rama del saber”.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Cuatro letras, dos sílabas — imbatible como logo, como handle y dictado por una línea mala.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>El menos distintivo: es tan plano que puede leerse como inacabado o como abreviatura.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Poco distintivo</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Rama a mi lista">★</button></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ===================== KICHWA ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>Kichwa y raíz andina</h2>
+    <p>El kichwa es cooficial en Ecuador y carga identidad local real — es un diferenciador fuerte frente a competidores extranjeros, pero solo si se usa con respeto. Los que no se deben usar están al final de la página.</p>
+  </div>
+  <div class="lista">
+
+    <article class="fila" data-nombre="Muyu">
+      <div class="specimen"><p class="nombre">Muyu</p><p class="origen">Kichwa</p><p class="significado">Semilla — y, en uso ecuatoriano, también esfera, círculo, algo redondo.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Cuatro letras: la cadena más “marcable” de la lista. Funciona como logotipo, como favicon y como par de sílabas habladas.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La trampa de dictado es real: el yeísmo ecuatoriano hace que “Muyu” suene idéntico a “Mullu”.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Riesgo de dictado</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Muyu a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Illari">
+      <div class="specimen"><p class="nombre">Illari</p><p class="origen">Kichwa</p><p class="significado">Amanecer, brillar. De la raíz <em>illa</em>, luz.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Hermoso e inmediatamente legible para cualquier ecuatoriano: “amanecer” se entiende al oírlo, así que la marca se explica sola sin tagline.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La aclaración ortográfica es inevitable: “¿Illari o Ilari, con dos eles?”, para siempre.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Riesgo de dictado</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Illari a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Achik">
+      <div class="specimen"><p class="nombre">Achik</p><p class="origen">Kichwa</p><p class="significado">Luz, claridad, brillo.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Cinco letras, dos sílabas, y “ch” es dígrafo nativo del español: no hay problema de “con hache”. La luz es la metáfora más agnóstica que existe.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>La K final invita a “Achic” — un genuino “¿con ka o con ce?”.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Riesgo de dictado</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Achik a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Tarpuy">
+      <div class="specimen"><p class="nombre">Tarpuy</p><p class="origen">Kichwa</p><p class="significado">La siembra; de <em>tarpuna</em>, sembrar.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Seis letras sin ambigüedad en español, culturalmente rica y agnóstica de materia.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>“Sembrar” es una metáfora del lado del profesor: deja al estudiante como el campo que es trabajado, no como quien actúa.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Metáfora invertida</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Tarpuy a mi lista">★</button></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ===================== NATURALEZA ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>Naturaleza ecuatoriana, sin la postal</h2>
+    <p>Deliberadamente sin Galápagos, tortugas, Cotopaxi, cóndores ni mitad del mundo. El vocabulario cotidiano que un ecuatoriano reconoce como suyo sin que parezca folleto.</p>
+  </div>
+  <div class="lista">
+
+    <article class="fila" data-nombre="Remanso">
+      <div class="specimen"><p class="nombre">Remanso</p><p class="origen">Naturaleza · español</p><p class="significado">El tramo quieto y hondo del río, donde la corriente se calma.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Ortografía perfecta y el ganador claro de la prueba de la madre: un lugar donde su hijo no va a ser apurado.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>“Remanso de paz” es un cliché gastado de inmobiliaria y spa; la frase llega antes que la palabra.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Cliché adyacente</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Remanso a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Aliso">
+      <div class="specimen"><p class="nombre">Aliso</p><p class="origen">Árbol andino</p><p class="significado">El aliso que se planta junto a las acequias para sostener la tierra.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Cinco letras, suave, sin trampas de h/ñ/tilde/b-v/ll-y. La ecología describe el negocio mejor que casi cualquier tagline.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>El seseo deja una rendija para “alizo”, aunque “aliso” es la única palabra real.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Riesgo bajo</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Aliso a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Guarumo">
+      <div class="specimen"><p class="nombre">Guarumo</p><p class="origen">Árbol pionero · bosque nublado</p><p class="significado">La cecropia: el árbol pionero que abre el claro para que crezca el resto.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Siete letras escritas tal como suenan. Biológicamente apto: la especie pionera que abre camino.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Guarumo S.A.S. es una encuestadora colombiana conocida, en guarumo.com — otro país y otro sector, pero está ahí.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Colisión regional</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Guarumo a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Sunfo">
+      <div class="specimen"><p class="nombre">Sunfo</p><p class="origen">Planta de páramo</p><p class="significado">La menta rastrera del páramo, de origen kichwa.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Perfectamente deletreable y profundamente no-turístico: ningún folleto lo usa.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Riesgo de reconocimiento: es palabra de sierra, y buena parte de la costa no la conoce.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Reconocimiento regional</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Sunfo a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Altura">
+      <div class="specimen"><p class="nombre">Altura</p><p class="origen">Español · geografía</p><p class="significado">La altitud: el hecho más inescapable de la vida en la sierra ecuatoriana.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Ortografía impecable y todos ya conocen la palabra — costo de enseñanza cero, que ningún otro nombre aquí puede reclamar.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Sustantivo común y corriente: el más difícil de apropiar, con alcance de marca estrecho.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Difícil de registrar</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Altura a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Manglar">
+      <div class="specimen"><p class="nombre">Manglar</p><p class="origen">Ecosistema costero</p><p class="significado">El bosque de mangle: la guardería del mar.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Ortografía hermética, siete letras sin ninguna ambigüedad. La metáfora de guardería es el argumento más explícito a favor de una escuela para niños.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Está codificado como costeño. Una madre quiteña puede registrarlo como “no es nuestro mundo”.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Sesgo regional</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Manglar a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Tocte">
+      <div class="specimen"><p class="nombre">Tocte</p><p class="origen">Árbol andino · kichwa</p><p class="significado">El nogal andino, un ecuatorianismo genuino.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Cinco letras, dos sílabas, imposible de escribir mal por teléfono.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Sus asociaciones son casi enteramente culinarias: quien conoce la palabra la conoce como una nuez que se come.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Asociación culinaria</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Tocte a mi lista">★</button></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ===================== RELACIONAL ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>Humano y relacional</h2>
+    <p>El registro del acompañamiento y el oficio. La apuesta: nombrar la <em>relación</em> en vez de la materia es lo que permite que una sola marca sostenga cuatro cosas distintas.</p>
+  </div>
+  <div class="lista">
+
+    <article class="fila" data-nombre="Tambo">
+      <div class="specimen"><p class="nombre">Tambo</p><p class="origen">Kichwa <em>tampu</em></p><p class="significado">La posada del camino inca: donde el viajero se recibe y se reabastece.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>La palabra más cálida y creíble del territorio: un tambo se define por hospitalidad <em>más</em> infraestructura — te reciben y te equipan.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>El Tambo es un lugar real en Ecuador — un cantón en Cañar y una parroquia en Loja.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Topónimo real</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Tambo a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Puente">
+      <div class="specimen"><p class="nombre">Puente</p><p class="origen">Español</p><p class="significado">Lo que deja cruzar un vacío que no se podía cruzar solo.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El de menor riesgo y el que no necesita explicación a nadie. La madre oye a su hijo cruzando del silencio al habla.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Es la metáfora más previsible en educación y programas sociales del mundo entero: genérico hasta la transparencia.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Genérico</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Puente a mi lista">★</button></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ===================== INVENTADOS ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>Inventados</h2>
+    <p>Cortos, construidos con raíces latinas y sufijos españoles. Es el territorio con más chance de un <code>.ec</code> libre y un registro SENADI limpio — a cambio de que no significan nada hasta que se los explica.</p>
+  </div>
+  <div class="lista">
+
+    <article class="fila" data-nombre="Anida">
+      <div class="specimen"><p class="nombre">Anida</p><p class="origen">Inventado · de <em>anidar</em></p><p class="significado">Anida: hace nido, echa raíz, encuentra dónde quedarse.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>No solo sobrevive la prueba de doble audiencia: es el punto entero del nombre, y pasa las dos mitades por la misma palabra. Nido es la palabra más cálida que hay para una madre.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Inclina a lo suave y doméstico: hay riesgo real de que lea como guardería o como marca de interiores.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Sin choque conocido</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Anida a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Aluma">
+      <div class="specimen"><p class="nombre">Aluma</p><p class="origen">Inventado · <em>alumbrar</em> + <em>alma</em></p><p class="significado">Alumbrar el camino, con alma dentro.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Cinco letras, una sola ortografía posible. Sin b/v, sin s/c/z, sin tilde, sin ñ, sin consonante doble: una madre lo dicta por teléfono y llega intacto.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Está a una letra de “alumna”, así que bastante gente va a escribir Alumna. La asociación es on-brand, pero es un choque genuino.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Casi homógrafo</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Aluma a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Podera">
+      <div class="specimen"><p class="nombre">Podera</p><p class="origen">Inventado · <em>poder</em> + <em>-era</em></p><p class="significado">El lugar donde se puede.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>El más apropiable de la lista: las búsquedas no devolvieron ninguna marca en español usándolo. Registro SENADI Clase 41 limpio y posibilidad real de podera.ec y del handle.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Semánticamente inerte al oírlo: nadie siente nada hasta que se lo explican — justo la propiedad equivocada.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-ok">Más apropiable</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Podera a mi lista">★</button></div>
+    </article>
+
+    <article class="fila" data-nombre="Ampara">
+      <div class="specimen"><p class="nombre">Ampara</p><p class="origen">De <em>amparar</em></p><p class="significado">Amparar: cobijar, proteger, respaldar a alguien.</p></div>
+      <div class="razones">
+        <div class="razon pro"><span class="marca">+</span><p>Sostiene la tensión exacta del encargo en una palabra: “amparo” es a la vez de las más cálidas y de las más institucionalmente serias del español.</p></div>
+        <div class="razon contra"><span class="marca">−</span><p>Carga dos marcos previos pesados que jalan lejos de la educación pagada: el recurso de amparo y la asistencia legal.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-warn">Marco legal previo</span><button class="estrella" type="button" aria-pressed="false" aria-label="Añadir Ampara a mi lista">★</button></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ===================== NO USAR ===================== -->
+<section>
+  <div class="sec-head">
+    <h2>No usar</h2>
+    <p>Salieron en la generación y se descartan por razones que no se negocian: apropiación cultural, símbolos sagrados, marcas del Estado y colisiones registradas. Van aquí para que nadie los vuelva a proponer dentro de seis meses.</p>
+  </div>
+  <div class="lista">
+
+    <article class="fila bloqueado" data-nombre="Yachay">
+      <div class="specimen"><p class="nombre">Yachay</p><p class="origen">Kichwa</p><p class="significado">Conocimiento; saber, aprender.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>El Estado ecuatoriano se tomó esta palabra en la categoría educación: Yachay, “Ciudad del Conocimiento”. En una escuela sería confusión de marca directa contra el Estado.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Marca del Estado</span></div>
+    </article>
+
+    <article class="fila bloqueado" data-nombre="Yachak">
+      <div class="specimen"><p class="nombre">Yachak</p><p class="origen">Kichwa</p><p class="significado">“El que sabe”: el chamán, sanador y guía espiritual.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>El fallo de apropiación más claro del territorio. Una escuela comercial de dueño no-kichwa tomando el título del chamán es exactamente lo que no se debe hacer.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Apropiación</span></div>
+    </article>
+
+    <article class="fila bloqueado" data-nombre="Chakana">
+      <div class="specimen"><p class="nombre">Chakana</p><p class="origen">Kichwa</p><p class="significado">La cruz andina escalonada.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>Es sagrada: un símbolo religioso, no vocabulario. Usarla como logo de una empresa privada es el mismo error que usar una cruz cristiana como marca comercial.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Símbolo sagrado</span></div>
+    </article>
+
+    <article class="fila bloqueado" data-nombre="Sinchi">
+      <div class="specimen"><p class="nombre">Sinchi</p><p class="origen">Kichwa</p><p class="significado">Fuerte, valiente, resistente.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>Mecánicamente es el mejor dictado de toda la lista, pero los Sinchis son una unidad militar peruana. Asociación equivocada para una escuela de niños.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Asociación militar</span></div>
+    </article>
+
+    <article class="fila bloqueado" data-nombre="Surco">
+      <div class="specimen"><p class="nombre">Surco</p><p class="origen">Español</p><p class="significado">La línea que abre el arado antes de sembrar.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>“El Surco” es marca ecuatoriana registrada desde 2022. Además hay una colisión adyacente a música, que importa porque David enseña música.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Marca registrada EC</span></div>
+    </article>
+
+    <article class="fila bloqueado" data-nombre="Lumera">
+      <div class="specimen"><p class="nombre">Lumera</p><p class="origen">Inventado · <em>lumen</em> + <em>-era</em></p><p class="significado">El lugar de la luz.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>Colisión directa de categoría: “Lumera | Estudio Escuela” es un proyecto vivo. Suena a palabra que ya debería existir, y por eso alguien más ya la usó.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Colisión de categoría</span></div>
+    </article>
+
+    <article class="fila bloqueado" data-nombre="Alumbra">
+      <div class="specimen"><p class="nombre">Alumbra</p><p class="origen">De <em>alumbrar</em></p><p class="significado">Alumbra: ilumina, le da luz al camino.</p></div>
+      <div class="razones">
+        <div class="razon contra"><span class="marca">✕</span><p>La ortografía es irrompible y la metáfora perfecta, pero <strong>“alumbrado” es jerga reconocida por la RAE para borracho</strong>, documentada en varios países. No es un riesgo que valga la pena.</p></div>
+      </div>
+      <div class="acciones"><span class="chip chip-stop">Jerga desafortunada</span></div>
+    </article>
+
+  </div>
+</section>
+
+<footer>
+  <p><strong>Antes de decidir, tres verificaciones que faltan</strong> y que cuestan una tarde: dominio <code>.ec</code> y <code>.com.ec</code>, el handle de Instagram, y una búsqueda en SENADI Clase 41 (servicios de educación).</p>
+  <p>Los criterios con los que se generó esta lista: deletreable al oírlo por WhatsApp, sin ñ ni tilde, agnóstico de materia (tiene que sostener inglés, música, programación y terapia de lenguaje), creíble para una madre que contrata a una terapista titulada y no vergonzoso para un chico de 24 aprendiendo a programar, corto para un logo y un handle, y sin doble sentido en jerga ecuatoriana.</p>
+  <p>Descartados en la ronda anterior: <em>Umbral</em>, <em>Quinde</em>, <em>Compás</em> (competidor ecuatoriano real), <em>Cantera</em> (escuela de fútbol en Quito).</p>
+  <p style="margin-top:1.25rem;color:var(--ink-3)">Tu lista se guarda en este navegador. Página temporal de trabajo.</p>
+</footer>
+
+</div>
+
+<script>
+  (function () {
+    var CLAVE = 'nombres-escuela-lista';
+    var lista = new Set();
+    try {
+      var guardado = localStorage.getItem(CLAVE);
+      if (guardado) lista = new Set(JSON.parse(guardado));
+    } catch (e) {}
+
+    var filas = Array.prototype.slice.call(document.querySelectorAll('.fila'));
+    var contador = document.getElementById('n-lista');
+    var btnLista = document.getElementById('btn-lista');
+    var btnLimpiar = document.getElementById('btn-limpiar');
+    var soloLista = false;
+
+    function guardar() {
+      try { localStorage.setItem(CLAVE, JSON.stringify(Array.prototype.slice.call(lista))); } catch (e) {}
+    }
+
+    function pintar() {
+      filas.forEach(function (fila) {
+        var nombre = fila.dataset.nombre;
+        var estrella = fila.querySelector('.estrella');
+        var elegido = lista.has(nombre);
+        if (estrella) estrella.setAttribute('aria-pressed', String(elegido));
+        fila.classList.toggle('oculta', soloLista && !elegido);
+      });
+      contador.textContent = String(lista.size);
+      btnLista.setAttribute('aria-pressed', String(soloLista));
+      btnLista.textContent = soloLista ? 'Ver todos' : 'Ver solo mi lista';
+    }
+
+    filas.forEach(function (fila) {
+      var estrella = fila.querySelector('.estrella');
+      if (!estrella) return;
+      estrella.addEventListener('click', function () {
+        var nombre = fila.dataset.nombre;
+        if (lista.has(nombre)) lista.delete(nombre); else lista.add(nombre);
+        guardar();
+        pintar();
+      });
+    });
+
+    btnLista.addEventListener('click', function () { soloLista = !soloLista; pintar(); });
+    btnLimpiar.addEventListener('click', function () {
+      lista.clear(); soloLista = false; guardar(); pintar();
+    });
+
+    pintar();
+  })();
+</script>
+</body>
+</html>
