@@ -219,9 +219,13 @@ const presentes = registro.filter((r) => r.asistio === true).length;
   .relativo { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0.25rem 0 0; }
 
   .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; max-width: 62rem; }
-  @media (min-width: 950px) { .cols { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1150px) { .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.5rem;
+    container: panel / inline-size;
+  }
   .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
   .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.125rem; }
   .nada { color: var(--color-ink-faint); font-size: var(--text-sm); margin: 0.5rem 0 0; line-height: 1.6; }
@@ -261,7 +265,21 @@ const presentes = registro.filter((r) => r.asistio === true).length;
     background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
   }
   input:focus { border-color: var(--color-primary); }
-  .par { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .par { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  .par > * { min-width: 0; }
+  /* A container query measures the container's CONTENT box, not its border box:
+     the 21rem form column is 336px wide but only 284px inside its padding, which
+     is why a 20rem threshold never matched.
+
+     `auto` for the first track, not `1fr`: an <input type="date"> will not render
+     below ~170px, and giving that column its intrinsic width lets the time field
+     take whatever is left. The pair needs 170 + 12 for the gap + 134 so the time
+     field can show "07:00 PM" without clipping: 316px, and 19.5rem (312px) is the
+     nearest threshold the 23rem form column clears. Below it they stack rather
+     than scrolling the page sideways, which is what the old `1fr 1fr` did. */
+  @container panel (min-width: 19.5rem) {
+    .par { grid-template-columns: auto minmax(0, 1fr); }
+  }
   .pista { font-size: var(--text-xs); color: var(--color-ink-soft); margin: -0.5rem 0 1.25rem; line-height: 1.5; }
   .pista-boton { font-size: var(--text-xs); color: var(--color-ink-soft); margin: 0.75rem 0 0; line-height: 1.5; }
   .ancho { width: 100%; }

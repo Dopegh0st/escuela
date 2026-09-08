@@ -169,7 +169,12 @@ const DATOS = [
   .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
   .msg.malo { background: #fdecec; color: var(--color-danger); }
 
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; max-width: 42rem; }
+  /* auto-fit rather than a fixed 3: on a 320px phone three tiles could not fit
+     and pushed the page sideways. They now fall to two, then one. */
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem; max-width: 42rem;
+  }
   .stat {
     background: var(--color-raised); border: 2px solid var(--color-border);
     border-radius: var(--radius-lg); padding: 1.125rem; border-top: 4px solid var(--c);
@@ -179,8 +184,20 @@ const DATOS = [
   .stat-etiqueta { font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm); margin: 0; }
   .stat-pie { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.125rem 0 0; }
 
-  .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
-  @media (min-width: 1050px) { .cols { grid-template-columns: 1fr 20rem; } }
+  .cols {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem;
+    align-items: start; max-width: 78rem;
+  }
+  .cols > * { min-width: 0; }
+  /* minmax(0, 1fr), not 1fr: the table inside carries min-width: 42rem, and a
+     bare `1fr` refuses to shrink below it, which pushed the grid past the
+     content box and scrolled the page sideways at 1060px. With a floor of 0 the
+     column can shrink and .tabla-caja scrolls internally, as intended. */
+  /* The table carries min-width: 42rem (672px). Alongside a 20rem panel plus the
+     gap that needs 1012px of content box, i.e. a 1332px viewport once the 16rem
+     sidebar and padding are taken. Below that the panel drops underneath, which
+     reads better than a table scrolling sideways inside its own box. */
+  @media (min-width: 1340px) { .cols { grid-template-columns: minmax(0, 1fr) 20rem; } }
 
   .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
   .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }

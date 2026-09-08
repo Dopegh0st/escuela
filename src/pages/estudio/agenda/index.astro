@@ -273,11 +273,33 @@ const ESTADOS: Record<string, string> = {
   .linea { display: flex; gap: 0.5rem; margin-top: 0.875rem; flex-wrap: wrap; }
   .linea input { flex: 1; min-width: 12rem; margin: 0; }
 
-  .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
-  @media (min-width: 1000px) { .cols { grid-template-columns: 21rem 1fr; } }
+  /* Two columns only from 1150px. The sidebar is 16rem from 900px up, so at a
+     1010px viewport this block is really 675px wide and the old 1000px
+     breakpoint handed the agenda a 319px column — narrow enough that a course
+     title collapsed to 33px. The cap stops the rows sprawling to 1000px+ of
+     mostly empty space on a large monitor. */
+  .cols {
+    display: grid; grid-template-columns: 1fr; gap: 1.25rem;
+    align-items: start; max-width: 74rem;
+  }
+  /* 1200px, not 1150: the second column must not appear until the agenda track
+     is still wider than the card's own 30rem threshold, or widening the window
+     would push the cards back into their stacked layout and make them TALLER.
+     1250 and not 1200 because a media query counts the scrollbar and the layout
+     does not: at a 1200px window the client box is 1185, which left the agenda
+     at 477px — three pixels under the card's threshold. At 1250 it gets ~527px. */
+  @media (min-width: 1250px) { .cols { grid-template-columns: 23rem minmax(0, 1fr); } }
 
-  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
-  @media (min-width: 1000px) { .formulario { position: sticky; top: 5.5rem; } }
+  .panel {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.5rem;
+    container: panel / inline-size;
+  }
+  /* No sticky here on purpose. `.cols` uses align-items: start, so the grid area
+     is exactly as tall as the panel and sticky has no room to pin — the rule was
+     inert. Making it work would be worse, not better: the form is ~775px tall and
+     a laptop viewport is 768px, so a pinned panel would put "Agendar" permanently
+     out of reach. Letting it scroll normally keeps the button always reachable. */
   .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
   .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.25rem; }
 
@@ -289,7 +311,21 @@ const ESTADOS: Record<string, string> = {
     background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
   }
   input:focus, select:focus { border-color: var(--color-primary); }
-  .par { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .par { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  .par > * { min-width: 0; }
+  /* A container query measures the container's CONTENT box, not its border box:
+     the 21rem form column is 336px wide but only 284px inside its padding, which
+     is why a 20rem threshold never matched.
+
+     `auto` for the first track, not `1fr`: an <input type="date"> will not render
+     below ~170px, and giving that column its intrinsic width lets the time field
+     take whatever is left. The pair needs 170 + 12 for the gap + 134 so the time
+     field can show "07:00 PM" without clipping: 316px, and 19.5rem (312px) is the
+     nearest threshold the 23rem form column clears. Below it they stack rather
+     than scrolling the page sideways, which is what the old `1fr 1fr` did. */
+  @container panel (min-width: 19.5rem) {
+    .par { grid-template-columns: auto minmax(0, 1fr); }
+  }
   .pista { font-size: var(--text-xs); color: var(--color-ink-soft); margin: -0.5rem 0 1.25rem; line-height: 1.5; }
   .ancho { width: 100%; }
   .chico { min-height: 36px; padding: 0.4375rem 0.875rem; font-size: var(--text-sm); }
@@ -298,6 +334,7 @@ const ESTADOS: Record<string, string> = {
   .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
   .msg.malo { background: #fdecec; color: var(--color-danger); }
 
+  .agenda { container: agenda / inline-size; }
   .titulo-seccion { font-size: var(--text-lg); margin: 0 0 1rem; }
   .pasadas-head { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
 
@@ -319,12 +356,17 @@ const ESTADOS: Record<string, string> = {
   }
 
   .lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.625rem; }
+
+  /* The card measures ITSELF, not the window. A viewport media query was the
+     original bug here: `min-width: 640px` was true while this card was 319px
+     wide, because the sidebar and the form column had already taken 850px. */
   .sesion {
-    display: grid; grid-template-columns: 5rem 1fr; gap: 0.875rem; align-items: center;
+    display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: 0.875rem;
+    align-items: center;
     background: var(--color-raised); border: 2px solid var(--color-border);
     border-radius: var(--radius-lg); padding: 0.875rem 1rem;
   }
-  @media (min-width: 640px) { .sesion { grid-template-columns: 5rem 1fr auto; } }
+
   .sesion.pasada { background: var(--color-surface); border-style: dashed; }
   .sesion.anulada .curso, .sesion.anulada .hora-valor { color: var(--color-ink-faint); text-decoration: line-through; }
 
@@ -341,8 +383,23 @@ const ESTADOS: Record<string, string> = {
   .estado.dictada { color: var(--color-accent); }
   .estado.cancelada { color: var(--color-danger); }
 
-  .acciones { grid-column: 1 / -1; display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; }
-  @media (min-width: 640px) { .acciones { grid-column: auto; } }
+  .acciones {
+    grid-column: 1 / -1;
+    display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end;
+  }
+  /* One width for every primary action so their edges line up row to row. */
+  .acciones .btn { min-width: 7.25rem; text-align: center; justify-content: center; }
+
+  /* Declared last on purpose: these override .sesion and .acciones above, and at
+     equal specificity source order decides. 30rem is where the time, a long
+     course title and both actions fit on one line without the title breaking. */
+  @container agenda (min-width: 30rem) {
+    /* A fixed action track, not `auto`: with `auto` each row sized its own
+       buttons, so "Abrir", "Poner enlace" and "Ver" all started at a different
+       x and the column read as ragged down the page. */
+    .sesion { grid-template-columns: 5rem minmax(0, 1fr) 13rem; }
+    .acciones { grid-column: auto; }
+  }
   .texto-btn {
     background: none; border: none; cursor: pointer; padding: 0;
     color: var(--color-ink-faint); font-size: var(--text-sm);
