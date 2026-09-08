@@ -33,9 +33,13 @@ const fmt = (d: Date) =>
   </section>
 
   <section class="container-page listado">
+    {/* Only the first row animates in. With a dozen posts, gating every card on
+        a scroll observer leaves the page opening on three cards above a screen
+        of blank space — and anything that never scrolls (a preview, a thumbnail,
+        a reader who stops) never sees the rest at all. */}
     <div class="grid-blog">
       {posts.map((post, i) => (
-        <article class:list={['post', 'animate-on-scroll', `delay-${(i % 3) + 1}`]} style={`--c:${post.data.color}`}>
+        <article class:list={['post', i < 3 && 'animate-on-scroll', i < 3 && `delay-${i + 1}`]} style={`--c:${post.data.color}`}>
           <a href={`/blog/${post.id}/`} class="post-portada" aria-hidden="true" tabindex="-1">
             <span>{post.data.emoji}</span>
           </a>
