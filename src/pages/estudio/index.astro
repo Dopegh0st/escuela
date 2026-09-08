@@ -2,7 +2,8 @@
 import Estudio from '../../layouts/Estudio.astro';
 import { getDb, schema } from '../../lib/db';
 import { cursosDeProfesor, perfilProfesor } from '../../lib/scope';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { diaCorto, horaDe } from '../../lib/agenda';
+import { and, eq, gte, inArray } from 'drizzle-orm';
 
 export const prerender = false;
 
@@ -40,9 +41,15 @@ const solicitudes = perfil
       .from(schema.claseGratis).where(eq(schema.claseGratis.profesorId, perfil.id))
   : [];
 
+// Upcoming only. Ordering by inicioAt without a floor put last month's classes
+// at the top of a panel titled "Próximas clases".
 const proximas = perfil
   ? await db.select().from(schema.claseSesion)
-      .where(eq(schema.claseSesion.profesorId, perfil.id))
+      .where(and(
+        eq(schema.claseSesion.profesorId, perfil.id),
+        eq(schema.claseSesion.estado, 'programada'),
+        gte(schema.claseSesion.inicioAt, Math.floor(Date.now() / 1000) - 2 * 3600),
+      ))
       .orderBy(schema.claseSesion.inicioAt).limit(5)
   : [];
 
@@ -136,20 +143,24 @@ const sinCursos = cursos.length === 0;
 
     <!-- ============ Próximas clases ============ -->
     <section class="panel">
-      <header class="panel-head"><h2>Próximas clases</h2></header>
+      <header class="panel-head">
+        <h2>Próximas clases</h2>
+        <a href="/estudio/agenda/" class="panel-link">Ver la agenda →</a>
+      </header>
       {proximas.length === 0 ? (
         <p class="nada">No tienes clases agendadas todavía.</p>
       ) : (
         <ul class="lista">
           {proximas.map((s) => (
             <li>
-              <span class="lista-titulo">
-                {new Date(s.inicioAt * 1000).toLocaleString('es-EC', {
-                  weekday: 'short', day: 'numeric', month: 'short',
-                  hour: '2-digit', minute: '2-digit', timeZone: 'America/Guayaquil',
-                })}
-              </span>
-              <span class="pill">{s.estado}</span>
+              <a href={`/estudio/agenda/${s.id}/`}>
+                <span class="lista-titulo">
+                  {diaCorto(s.inicioAt)} · {horaDe(s.inicioAt)}
+                </span>
+                <span class:list={['pill', !s.meetingUrl && 'pill-falta']}>
+                  {s.meetingUrl ? `${s.duracionMin} min` : 'sin enlace'}
+                </span>
+              </a>
             </li>
           ))}
         </ul>
@@ -211,6 +222,7 @@ const sinCursos = cursos.length === 0;
   .lista-titulo { font-size: var(--text-sm); font-weight: 600; }
   .pill { font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display); padding: 0.1875rem 0.5rem; border-radius: var(--radius-pill); background: var(--color-sunken); color: var(--color-ink-faint); white-space: nowrap; }
   .pill-publicado { background: var(--color-accent-soft); color: var(--color-accent); }
+  .pill-falta { background: var(--color-sun-soft); color: #7a5200; }
 
   .vacio { text-align: center; padding: 1.5rem 1rem; }
   .vacio-emoji { font-size: 2.25rem; }

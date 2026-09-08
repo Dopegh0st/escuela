@@ -1,28 +1,352 @@
 ---
 import Estudio from '../../../layouts/Estudio.astro';
+import { getDb, schema } from '../../../lib/db';
+import { cursosDeProfesor, perfilProfesor } from '../../../lib/scope';
+import {
+  sesionesDeProfesor, conteoAsistencia, deUnixEc,
+  fechaLarga, horaDe, cuando, claveDia,
+} from '../../../lib/agenda';
+import { actions } from 'astro:actions';
+import { inArray } from 'drizzle-orm';
 
 export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const db = getDb();
+const ahora = Math.floor(Date.now() / 1000);
+
+const perfil = await perfilProfesor(db, actor);
+const cursos = await cursosDeProfesor(db, actor);
+const sesiones = await sesionesDeProfesor(db, actor);
+const asistencia = await conteoAsistencia(db, sesiones.map((s) => s.id));
+
+const cursoIds = [...new Set(sesiones.map((s) => s.cursoId).filter(Boolean))] as string[];
+const tituloCurso = cursoIds.length
+  ? new Map((await db.select({ id: schema.curso.id, titulo: schema.curso.titulo })
+      .from(schema.curso).where(inArray(schema.curso.id, cursoIds))).map((c) => [c.id, c.titulo]))
+  : new Map<string, string>();
+
+// How many students are expected, per course, so a card can say "0 estudiantes"
+// before the teacher wonders why the register is empty.
+const matriculas = cursoIds.length
+  ? await db.select({ cursoId: schema.matricula.cursoId, estado: schema.matricula.estado })
+      .from(schema.matricula).where(inArray(schema.matricula.cursoId, cursoIds))
+  : [];
+const inscritos = new Map<string, number>();
+for (const m of matriculas) {
+  if (m.estado !== 'activa') continue;
+  inscritos.set(m.cursoId, (inscritos.get(m.cursoId) ?? 0) + 1);
+}
+
+/* A class that started less than two hours ago is still "today's class". */
+const vigente = (s: typeof sesiones[number]) =>
+  s.estado !== 'cancelada' && s.inicioAt >= ahora - 2 * 3600;
+const proximas = sesiones.filter(vigente);
+const pasadas = sesiones.filter((s) => !vigente(s)).reverse();
+
+/* Group the upcoming ones by Ecuador calendar day. */
+const porDia: { dia: string; unix: number; sesiones: typeof sesiones }[] = [];
+for (const s of proximas) {
+  const k = claveDia(s.inicioAt);
+  const grupo = porDia.find((g) => g.dia === k);
+  if (grupo) grupo.sesiones.push(s);
+  else porDia.push({ dia: k, unix: s.inicioAt, sesiones: [s] });
+}
+
+const creado = Astro.getActionResult(actions.crearSesion);
+const cancelado = Astro.getActionResult(actions.cancelarSesion);
+const borrado = Astro.getActionResult(actions.borrarSesion);
+const verificado = Astro.getActionResult(actions.registrarVetting);
+
+function mensajeError(err: unknown): string | null {
+  if (!err) return null;
+  const e = err as { fields?: Record<string, string[] | undefined>; message?: string };
+  if (e.fields) for (const m of Object.values(e.fields)) if (m?.length) return m[0];
+  const m = e.message ?? '';
+  return m.startsWith('Failed to validate') ? 'Revisa los datos e intenta de nuevo.' : m || 'No se pudo agendar.';
+}
+const errorCrear = mensajeError(creado?.error);
+const errorCancelar = mensajeError(cancelado?.error);
+
+const hoy = deUnixEc(ahora).fecha;
+const puedeAgendar = Boolean(perfil?.vettingCompletadoAt);
+const esAdministrador = actor.roles.split(',').includes('admin');
+
+const ESTADOS: Record<string, string> = {
+  programada: 'Programada', dictada: 'Dictada', cancelada: 'Cancelada',
+};
 ---
 
 <Estudio title="Agenda" seccion="agenda">
-  <div class="pendiente">
-    <span class="emoji" aria-hidden="true">🗓️</span>
-    <h2>Agenda</h2>
-    <p>Aquí vas a agendar tus clases en vivo y generar el enlace de cada sesión. Todavía no está listo.</p>
-    <a class="btn btn-secondary" href="/estudio/">Volver al inicio</a>
+  {!perfil && (
+    <div class="banner malo">
+      <strong>Tu perfil de profesor todavía no está activo.</strong>
+      <p>Un administrador tiene que completar tu ficha antes de que puedas agendar clases.</p>
+    </div>
+  )}
+
+  {perfil && !puedeAgendar && (
+    <div class="banner malo">
+      <strong>Falta registrar tu verificación de antecedentes.</strong>
+      <p>
+        Das clases a niños, así que la verificación tiene que quedar registrada antes de
+        que puedas agendar. Queda guardada con la fecha y con quién la hizo.
+      </p>
+      {esAdministrador && (
+        <form method="POST" action={actions.registrarVetting} class="linea">
+          <input type="hidden" name="profesorId" value={perfil.id} />
+          <input name="verificadoPor" required minlength="3" maxlength="140"
+                 placeholder="¿Quién revisó los documentos?" />
+          <button class="btn btn-primary chico" type="submit">Registrar verificación</button>
+        </form>
+      )}
+    </div>
+  )}
+
+  {verificado && !verificado.error && (
+    <p class="msg bien">Verificación registrada. Ya puedes agendar clases.</p>
+  )}
+
+  <div class="cols">
+    <!-- ==================== Form ==================== -->
+    <section class="panel formulario">
+      <h2>Agendar una clase</h2>
+      <p class="sub">La hora es la de Ecuador. Tus estudiantes la ven igual que tú.</p>
+
+      {errorCrear && <p class="msg malo">{errorCrear}</p>}
+      {creado && !creado.error && (
+        <p class="msg bien">
+          {creado.data.cuantas === 1 ? 'Clase agendada.' : `${creado.data.cuantas} clases agendadas.`}
+        </p>
+      )}
+
+      <form method="POST" action={actions.crearSesion}>
+        <label for="cursoId">Curso</label>
+        <select id="cursoId" name="cursoId">
+          <option value="">Clase suelta (prueba gratis, individual)</option>
+          {cursos.map((c) => <option value={c.id}>{c.titulo}</option>)}
+        </select>
+
+        <div class="par">
+          <div>
+            <label for="fecha">Fecha</label>
+            <input id="fecha" name="fecha" type="date" required value={hoy} min={hoy} />
+          </div>
+          <div>
+            <label for="hora">Hora</label>
+            <input id="hora" name="hora" type="time" required value="19:00" step="300" />
+          </div>
+        </div>
+
+        <div class="par">
+          <div>
+            <label for="duracionMin">Duración (min)</label>
+            <input id="duracionMin" name="duracionMin" type="number" required value="40" min="15" max="240" step="5" />
+          </div>
+          <div>
+            <label for="cupo">Cupo</label>
+            <input id="cupo" name="cupo" type="number" required value="8" min="1" max="40" />
+          </div>
+        </div>
+
+        <label for="repetirSemanas">Repetir cada semana</label>
+        <select id="repetirSemanas" name="repetirSemanas">
+          <option value="1">Solo esta vez</option>
+          <option value="3">3 semanas</option>
+          <option value="4">4 semanas</option>
+          <option value="6">6 semanas</option>
+          <option value="8">8 semanas</option>
+        </select>
+
+        <label for="meetingUrl">Enlace de la reunión <span class="opcional">(opcional)</span></label>
+        <input id="meetingUrl" name="meetingUrl" type="url" maxlength="600"
+               placeholder="https://meet.google.com/..." />
+        <p class="pista">
+          Genera un enlace <strong>nuevo</strong> para cada clase. No uses tu sala personal:
+          si alguien lo reenvía, ese enlace le sirve para entrar a todas las demás.
+          Puedes dejarlo vacío ahora y ponerlo después.
+        </p>
+
+        <button class="btn btn-primary ancho" type="submit" disabled={!puedeAgendar}>
+          Agendar
+        </button>
+      </form>
+    </section>
+
+    <!-- ==================== Agenda ==================== -->
+    <section class="agenda">
+      {errorCancelar && <p class="msg malo">{errorCancelar}</p>}
+      {cancelado && !cancelado.error && <p class="msg bien">Clase cancelada. El enlace quedó anulado.</p>}
+      {borrado && !borrado.error && <p class="msg bien">Clase borrada.</p>}
+
+      <h2 class="titulo-seccion">Próximas clases</h2>
+
+      {porDia.length === 0 ? (
+        <div class="vacio">
+          <span aria-hidden="true">🗓️</span>
+          <p><strong>No tienes clases agendadas.</strong></p>
+          <p class="vacio-sub">Agenda la primera con el formulario. Aparece aquí y en el panel de tus estudiantes.</p>
+        </div>
+      ) : (
+        porDia.map((g) => (
+          <div class="dia">
+            <h3 class="dia-titulo">{fechaLarga(g.unix)}</h3>
+            <ul class="lista">
+              {g.sesiones.map((s) => {
+                const n = s.cursoId ? inscritos.get(s.cursoId) ?? 0 : 0;
+                return (
+                  <li class="sesion">
+                    <div class="hora">
+                      <span class="hora-valor">{horaDe(s.inicioAt)}</span>
+                      <span class="hora-dur">{s.duracionMin} min</span>
+                    </div>
+                    <div class="cuerpo">
+                      <p class="curso">
+                        {s.cursoId ? tituloCurso.get(s.cursoId) ?? 'Curso' : 'Clase suelta'}
+                      </p>
+                      <p class="detalle">
+                        <span>{cuando(s.inicioAt, ahora)}</span>
+                        {s.cursoId && <span>· {n} {n === 1 ? 'estudiante' : 'estudiantes'}</span>}
+                        {!s.meetingUrl && <span class="falta">· sin enlace</span>}
+                      </p>
+                    </div>
+                    <div class="acciones">
+                      <a class="btn btn-secondary chico" href={`/estudio/agenda/${s.id}/`}>
+                        {s.meetingUrl ? 'Abrir' : 'Poner enlace'}
+                      </a>
+                      <form method="POST" action={actions.cancelarSesion}
+                            onsubmit="return confirm('¿Cancelar esta clase? El enlace deja de funcionar y tus estudiantes dejan de verla.')">
+                        <input type="hidden" name="sesionId" value={s.id} />
+                        <button class="texto-btn" type="submit">Cancelar</button>
+                      </form>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))
+      )}
+
+      {pasadas.length > 0 && (
+        <>
+          <h2 class="titulo-seccion pasadas-head">Clases anteriores</h2>
+          <ul class="lista">
+            {pasadas.slice(0, 20).map((s) => {
+              const a = asistencia.get(s.id);
+              return (
+                <li class:list={['sesion', 'pasada', s.estado === 'cancelada' && 'anulada']}>
+                  <div class="hora">
+                    <span class="hora-valor chica">{horaDe(s.inicioAt)}</span>
+                    <span class="hora-dur">{fechaLarga(s.inicioAt).split(',')[0]}</span>
+                  </div>
+                  <div class="cuerpo">
+                    <p class="curso">
+                      {s.cursoId ? tituloCurso.get(s.cursoId) ?? 'Curso' : 'Clase suelta'}
+                    </p>
+                    <p class="detalle">
+                      <span class:list={['estado', s.estado]}>{ESTADOS[s.estado] ?? s.estado}</span>
+                      {a
+                        ? <span>· {a.presentes} de {a.marcados} asistieron</span>
+                        : s.estado !== 'cancelada' && s.cursoId && <span class="falta">· sin registrar asistencia</span>}
+                    </p>
+                  </div>
+                  <div class="acciones">
+                    <a class="btn btn-secondary chico" href={`/estudio/agenda/${s.id}/`}>Ver</a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </section>
   </div>
 </Estudio>
 
 <style>
-  .pendiente {
-    background: var(--color-raised);
-    border: 2px dashed var(--color-border-strong);
-    border-radius: var(--radius-lg);
-    padding: 3.5rem 1.5rem;
-    text-align: center;
-    max-width: 34rem;
+  .banner {
+    border-radius: var(--radius-lg); padding: 1.125rem 1.375rem; margin-bottom: 1.5rem;
+    background: var(--color-sun-soft); border: 2px solid var(--color-sun);
   }
-  .emoji { font-size: 2.5rem; }
-  h2 { font-size: var(--text-xl); margin: 0.75rem 0 0.375rem; }
-  p { color: var(--color-ink-soft); margin: 0 auto 1.5rem; max-width: 42ch; }
+  .banner p { margin: 0.25rem 0 0; color: var(--color-ink-soft); font-size: var(--text-sm); }
+  .linea { display: flex; gap: 0.5rem; margin-top: 0.875rem; flex-wrap: wrap; }
+  .linea input { flex: 1; min-width: 12rem; margin: 0; }
+
+  .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+  @media (min-width: 1000px) { .cols { grid-template-columns: 21rem 1fr; } }
+
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  @media (min-width: 1000px) { .formulario { position: sticky; top: 5.5rem; } }
+  .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
+  .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.25rem; }
+
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  .opcional { font-weight: 600; color: var(--color-ink-faint); }
+  input, select {
+    width: 100%; padding: 0.625rem 0.75rem; font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  input:focus, select:focus { border-color: var(--color-primary); }
+  .par { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .pista { font-size: var(--text-xs); color: var(--color-ink-soft); margin: -0.5rem 0 1.25rem; line-height: 1.5; }
+  .ancho { width: 100%; }
+  .chico { min-height: 36px; padding: 0.4375rem 0.875rem; font-size: var(--text-sm); }
+
+  .msg { border-radius: var(--radius-md); padding: 0.875rem 1.125rem; font-weight: 600; margin: 0 0 1.25rem; font-size: var(--text-sm); }
+  .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
+  .msg.malo { background: #fdecec; color: var(--color-danger); }
+
+  .titulo-seccion { font-size: var(--text-lg); margin: 0 0 1rem; }
+  .pasadas-head { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
+
+  .vacio {
+    text-align: center; padding: 3rem 1.5rem; background: var(--color-raised);
+    border: 2px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+  }
+  .vacio span { font-size: 2.5rem; }
+  .vacio p { margin: 0.5rem 0 0; }
+  .vacio-sub { color: var(--color-ink-soft); font-size: var(--text-sm); max-width: 34ch; margin-inline: auto; }
+
+  .dia { margin-bottom: 1.75rem; }
+  .dia-titulo::first-letter { text-transform: uppercase; }
+  .dia-titulo {
+    font-size: var(--text-sm); font-family: var(--font-display); font-weight: 800;
+    color: var(--color-primary);
+    margin: 0 0 0.625rem; padding-bottom: 0.375rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.625rem; }
+  .sesion {
+    display: grid; grid-template-columns: 5rem 1fr; gap: 0.875rem; align-items: center;
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 0.875rem 1rem;
+  }
+  @media (min-width: 640px) { .sesion { grid-template-columns: 5rem 1fr auto; } }
+  .sesion.pasada { background: var(--color-surface); border-style: dashed; }
+  .sesion.anulada .curso, .sesion.anulada .hora-valor { color: var(--color-ink-faint); text-decoration: line-through; }
+
+  .hora { text-align: center; }
+  .hora-valor { display: block; font-family: var(--font-display); font-weight: 800; font-size: var(--text-base); white-space: nowrap; }
+  .hora-valor.chica { font-size: var(--text-sm); }
+  .hora-dur { display: block; font-size: var(--text-xs); color: var(--color-ink-faint); }
+
+  .cuerpo { min-width: 0; }
+  .curso { font-weight: 700; font-size: var(--text-sm); margin: 0 0 0.125rem; }
+  .detalle { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0; display: flex; gap: 0.25rem; flex-wrap: wrap; }
+  .falta { color: #b06a00; font-weight: 700; }
+  .estado { font-weight: 800; font-family: var(--font-display); }
+  .estado.dictada { color: var(--color-accent); }
+  .estado.cancelada { color: var(--color-danger); }
+
+  .acciones { grid-column: 1 / -1; display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; }
+  @media (min-width: 640px) { .acciones { grid-column: auto; } }
+  .texto-btn {
+    background: none; border: none; cursor: pointer; padding: 0;
+    color: var(--color-ink-faint); font-size: var(--text-sm);
+    font-weight: 700; font-family: var(--font-display);
+  }
+  .texto-btn:hover { color: var(--color-danger); }
 </style>

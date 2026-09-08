@@ -284,3 +284,54 @@ export async function avisosDeProfesor(db: Db, actor: Actor, limite = 30) {
     .where(eq(schema.aviso.autorUserId, actor.userId))
     .orderBy(desc(schema.aviso.createdAt)).limit(limite);
 }
+
+/* -------------------------------------------------------------------------- */
+/* A teacher's students                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Active enrolments across every course this teacher owns.
+ *
+ * A teacher's reach over student records is defined here and nowhere else: they
+ * may see a child only for as long as that child is enrolled with them. There is
+ * no "list all students" query in this codebase, deliberately.
+ */
+export async function matriculasDeProfesor(db: Db, actor: Actor) {
+  const cursos = await cursosDeProfesor(db, actor);
+  const cursoIds = cursos.map((c) => c.id);
+  if (cursoIds.length === 0) return { cursos, matriculas: [] as typeof schema.matricula.$inferSelect[] };
+
+  const matriculas = await db.select().from(schema.matricula).where(and(
+    inArray(schema.matricula.cursoId, cursoIds),
+    eq(schema.matricula.estado, 'activa'),
+  ));
+  return { cursos, matriculas };
+}
+
+/**
+ * One student, but ONLY if they are enrolled in a course this teacher owns.
+ *
+ * The student id does come from the URL here — a teacher has to be able to open
+ * a particular child's record. What makes that safe is that the id is checked
+ * against the actor's own enrolment list before a single field is read, and an
+ * id outside that set returns null so the page 404s rather than 403s.
+ */
+export async function estudianteDeProfesor(db: Db, actor: Actor, estudianteUserId: string) {
+  const { cursos, matriculas } = await matriculasDeProfesor(db, actor);
+  const suyas = matriculas.filter((m) => m.estudianteUserId === estudianteUserId);
+  if (suyas.length === 0) return null;
+
+  const filas = await db.select({
+    id: schema.user.id,
+    name: schema.user.name,
+    email: schema.user.email,
+    telefono: schema.user.telefono,
+    fechaNacimiento: schema.user.fechaNacimiento,
+    createdAt: schema.user.createdAt,
+  }).from(schema.user).where(eq(schema.user.id, estudianteUserId)).limit(1);
+  const usuario = filas[0];
+  if (!usuario) return null;
+
+  const mios = new Set(suyas.map((m) => m.cursoId));
+  return { usuario, matriculas: suyas, cursos: cursos.filter((c) => mios.has(c.id)) };
+}

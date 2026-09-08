@@ -1,0 +1,276 @@
+---
+import Estudio from '../../../layouts/Estudio.astro';
+import { getDb, schema } from '../../../lib/db';
+import {
+  sesionPropia, registroDeSesion, deUnixEc,
+  fechaLarga, horaDe, cuando, enlaceVisible,
+} from '../../../lib/agenda';
+import { actions } from 'astro:actions';
+import { eq } from 'drizzle-orm';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const actor = Astro.locals.actor!;
+const db = getDb();
+const ahora = Math.floor(Date.now() / 1000);
+
+const sesion = await sesionPropia(db, actor, id!);
+if (!sesion) return new Response('No encontramos esa clase.', { status: 404 });
+
+const curso = sesion.cursoId
+  ? (await db.select().from(schema.curso).where(eq(schema.curso.id, sesion.cursoId)).limit(1))[0] ?? null
+  : null;
+
+const registro = await registroDeSesion(db, sesion.id, sesion.cursoId);
+const { fecha, hora } = deUnixEc(sesion.inicioAt);
+
+const guardado = Astro.getActionResult(actions.guardarSesion);
+const marcado = Astro.getActionResult(actions.marcarAsistencia);
+const cancelado = Astro.getActionResult(actions.cancelarSesion);
+
+function mensajeError(err: unknown): string | null {
+  if (!err) return null;
+  const e = err as { fields?: Record<string, string[] | undefined>; message?: string };
+  if (e.fields) for (const m of Object.values(e.fields)) if (m?.length) return m[0];
+  const m = e.message ?? '';
+  return m.startsWith('Failed to validate') ? 'Revisa los datos e intenta de nuevo.' : m || 'No se pudo guardar.';
+}
+const errorGuardar = mensajeError(guardado?.error);
+const errorMarcar = mensajeError(marcado?.error);
+
+const anulada = sesion.estado === 'cancelada';
+const yaEmpezo = ahora >= sesion.inicioAt;
+const ventanaAbierta = enlaceVisible(sesion.inicioAt, sesion.duracionMin, ahora);
+const marcados = registro.filter((r) => r.asistio !== null).length;
+const presentes = registro.filter((r) => r.asistio === true).length;
+---
+
+<Estudio
+  title={curso?.titulo ?? 'Clase suelta'}
+  seccion="agenda"
+  volverA="/estudio/agenda/"
+  volverTexto="Agenda"
+>
+  <header class="cabecera">
+    <p class="cuando">
+      <span class="dia">{fechaLarga(sesion.inicioAt)}</span>
+      <span class="sep">·</span>
+      <span>{horaDe(sesion.inicioAt)}</span>
+      <span class="sep">·</span>
+      <span>{sesion.duracionMin} min</span>
+    </p>
+    <p class="relativo">
+      {anulada
+        ? 'Esta clase está cancelada.'
+        : sesion.estado === 'dictada'
+          ? `Dictada · ${presentes} de ${marcados} asistieron`
+          : cuando(sesion.inicioAt, ahora)}
+    </p>
+  </header>
+
+  {errorGuardar && <p class="msg malo">{errorGuardar}</p>}
+  {guardado && !guardado.error && <p class="msg bien">Cambios guardados.</p>}
+  {errorMarcar && <p class="msg malo">{errorMarcar}</p>}
+  {marcado && !marcado.error && (
+    <p class="msg bien">Asistencia registrada: {marcado.data.presentes} de {marcado.data.total}.</p>
+  )}
+  {cancelado && !cancelado.error && <p class="msg bien">Clase cancelada. El enlace quedó anulado.</p>}
+
+  <div class="cols">
+    <!-- ==================== Register ==================== -->
+    <section class="panel">
+      <h2>Asistencia</h2>
+
+      {!sesion.cursoId ? (
+        <p class="nada">
+          Esta es una clase suelta, sin curso. La asistencia se registra solo en las clases
+          que pertenecen a un curso.
+        </p>
+      ) : registro.length === 0 ? (
+        <p class="nada">
+          Todavía no hay estudiantes matriculados en {curso?.titulo ?? 'este curso'}.
+          Puedes darles el cupo desde <a href="/estudio/estudiantes/">Estudiantes</a>.
+        </p>
+      ) : (
+        <>
+          <p class="sub">
+            {marcados > 0
+              ? `${presentes} de ${registro.length} asistieron. Puedes corregirlo cuando quieras.`
+              : yaEmpezo
+                ? 'Marca quién entró. Al guardar, la clase queda como dictada.'
+                : 'Marca quién entró cuando termine la clase.'}
+          </p>
+          <form method="POST" action={actions.marcarAsistencia}>
+            <input type="hidden" name="sesionId" value={sesion.id} />
+            <ul class="registro">
+              {registro.map((r) => (
+                <li>
+                  <label class="alumno">
+                    <input type="checkbox" name="presentes" value={r.userId} checked={r.asistio === true} />
+                    <span class="alumno-datos">
+                      <a href={`/estudio/estudiante/${r.userId}/`} class="alumno-nombre">{r.nombre}</a>
+                      <span class="alumno-mail">{r.email}</span>
+                    </span>
+                    {r.asistio === false && <span class="marca-falta">faltó</span>}
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <button class="btn btn-primary ancho" type="submit" disabled={anulada}>
+              {marcados === 0 ? 'Guardar asistencia' : 'Actualizar asistencia'}
+            </button>
+            {!yaEmpezo && (
+              <p class="pista-boton">Todavía no empieza. Guarda la asistencia cuando termine la clase.</p>
+            )}
+          </form>
+        </>
+      )}
+    </section>
+
+    <!-- ==================== Details ==================== -->
+    <section class="panel">
+      <h2>Detalles de la clase</h2>
+
+      {sesion.meetingUrl ? (
+        <div class="enlace-caja">
+          <p class="enlace-label">Enlace de la reunión</p>
+          <a class="enlace" href={sesion.meetingUrl} target="_blank" rel="noopener noreferrer">
+            {sesion.meetingUrl}
+          </a>
+          <p class="enlace-nota">
+            {ventanaAbierta
+              ? 'Tus estudiantes lo están viendo ahora.'
+              : 'Tus estudiantes lo ven desde 20 minutos antes hasta media hora después de la clase.'}
+          </p>
+        </div>
+      ) : !anulada && (
+        <p class="msg aviso">
+          Esta clase todavía no tiene enlace. Ponlo abajo antes de que empiece.
+        </p>
+      )}
+
+      <form method="POST" action={actions.guardarSesion}>
+        <input type="hidden" name="sesionId" value={sesion.id} />
+
+        <div class="par">
+          <div>
+            <label for="fecha">Fecha</label>
+            <input id="fecha" name="fecha" type="date" required value={fecha} />
+          </div>
+          <div>
+            <label for="hora">Hora</label>
+            <input id="hora" name="hora" type="time" required value={hora} step="300" />
+          </div>
+        </div>
+
+        <div class="par">
+          <div>
+            <label for="duracionMin">Duración (min)</label>
+            <input id="duracionMin" name="duracionMin" type="number" required
+                   value={sesion.duracionMin} min="15" max="240" step="5" />
+          </div>
+          <div>
+            <label for="cupo">Cupo</label>
+            <input id="cupo" name="cupo" type="number" required value={sesion.cupo} min="1" max="40" />
+          </div>
+        </div>
+
+        <label for="meetingUrl">Enlace de la reunión</label>
+        <input id="meetingUrl" name="meetingUrl" type="url" maxlength="600"
+               value={sesion.meetingUrl ?? ''} placeholder="https://meet.google.com/..." />
+        <p class="pista">
+          Tiene que ser un enlace <strong>nuevo</strong>, distinto al de tus otras clases.
+          Si repites el mismo, cualquiera que lo tenga guardado puede entrar a todas.
+        </p>
+
+        <button class="btn btn-primary ancho" type="submit" disabled={anulada}>Guardar cambios</button>
+      </form>
+
+      {!anulada && (
+        <form method="POST" action={actions.cancelarSesion} class="cancelar"
+              onsubmit="return confirm('¿Cancelar esta clase? El enlace deja de funcionar y tus estudiantes dejan de verla.')">
+          <input type="hidden" name="sesionId" value={sesion.id} />
+          <label for="motivo">Motivo <span class="opcional">(queda en el registro)</span></label>
+          <input id="motivo" name="motivo" maxlength="300" placeholder="Ej: se enfermó el profesor" />
+          <button class="texto-btn" type="submit">Cancelar esta clase</button>
+        </form>
+      )}
+
+      {anulada && (
+        <form method="POST" action={actions.borrarSesion} class="cancelar"
+              onsubmit="return confirm('¿Borrar esta clase del historial? No se puede deshacer.')">
+          <input type="hidden" name="sesionId" value={sesion.id} />
+          <button class="texto-btn" type="submit">Borrar del historial</button>
+        </form>
+      )}
+    </section>
+  </div>
+</Estudio>
+
+<style>
+  .cabecera { margin-bottom: 1.5rem; }
+  .cuando {
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-lg);
+    margin: 0; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: baseline;
+  }
+  .dia::first-letter { text-transform: uppercase; }
+  .sep { color: var(--color-ink-faint); }
+  .relativo { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0.25rem 0 0; }
+
+  .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; max-width: 62rem; }
+  @media (min-width: 950px) { .cols { grid-template-columns: 1fr 1fr; } }
+
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
+  .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.125rem; }
+  .nada { color: var(--color-ink-faint); font-size: var(--text-sm); margin: 0.5rem 0 0; line-height: 1.6; }
+
+  .msg { border-radius: var(--radius-md); padding: 0.875rem 1.125rem; font-weight: 600; margin: 0 0 1.25rem; font-size: var(--text-sm); }
+  .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
+  .msg.malo { background: #fdecec; color: var(--color-danger); }
+  .msg.aviso { background: var(--color-sun-soft); color: #7a5200; }
+
+  .registro { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; gap: 0.375rem; }
+  .alumno {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.625rem 0.75rem; border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); cursor: pointer; background: var(--color-surface);
+  }
+  .alumno:hover { border-color: var(--color-primary); }
+  .alumno input { width: 1.125rem; height: 1.125rem; margin: 0; flex: none; accent-color: var(--color-accent); }
+  .alumno-datos { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .alumno-nombre { font-size: var(--text-sm); font-weight: 700; color: inherit; text-decoration: none; }
+  .alumno-nombre:hover { color: var(--color-primary); text-decoration: underline; }
+  .alumno-mail { font-size: var(--text-xs); color: var(--color-ink-faint); overflow: hidden; text-overflow: ellipsis; }
+  .marca-falta { font-size: var(--text-xs); font-weight: 800; color: var(--color-danger); font-family: var(--font-display); }
+
+  .enlace-caja {
+    background: var(--color-accent-soft); border-radius: var(--radius-md);
+    padding: 0.875rem 1rem; margin-bottom: 1.25rem;
+  }
+  .enlace-label { font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display); color: var(--color-accent); margin: 0 0 0.25rem; }
+  .enlace { font-size: var(--text-sm); color: var(--color-ink); word-break: break-all; font-weight: 600; }
+  .enlace-nota { font-size: var(--text-xs); color: var(--color-ink-soft); margin: 0.5rem 0 0; }
+
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  .opcional { font-weight: 600; color: var(--color-ink-faint); }
+  input {
+    width: 100%; padding: 0.625rem 0.75rem; font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  input:focus { border-color: var(--color-primary); }
+  .par { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .pista { font-size: var(--text-xs); color: var(--color-ink-soft); margin: -0.5rem 0 1.25rem; line-height: 1.5; }
+  .pista-boton { font-size: var(--text-xs); color: var(--color-ink-soft); margin: 0.75rem 0 0; line-height: 1.5; }
+  .ancho { width: 100%; }
+
+  .cancelar { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border); }
+  .texto-btn {
+    background: none; border: none; cursor: pointer; padding: 0;
+    color: var(--color-ink-faint); font-size: var(--text-sm);
+    font-weight: 700; font-family: var(--font-display);
+  }
+  .texto-btn:hover { color: var(--color-danger); }
+</style>

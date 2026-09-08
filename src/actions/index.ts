@@ -3,7 +3,9 @@ import { z } from 'astro:schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { getDb, cfEnv, schema } from '../lib/db';
 import { cursoPropio, perfilProfesor, registrarAuditoria, leccionAccesible, matriculaDe, avisosParaAlumno, type Actor } from '../lib/scope';
-import { getAuth } from '../lib/auth';
+import { getAuth, esAdmin } from '../lib/auth';
+import { aUnixEc, enlaceValido, enlaceYaUsado, sesionPropia, registroDeSesion } from '../lib/agenda';
+import { buscarUsuarioPorEmail, yaMatriculado } from '../lib/estudiantes';
 
 /**
  * Every mutation the teacher studio performs.
@@ -495,6 +497,356 @@ export const server = {
         })),
       );
       return { ok: true, marcados: aMarcar.length };
+    },
+  }),
+
+  /* ---------------------------------------------------------------- agenda */
+
+  crearSesion: defineAction({
+    accept: 'form',
+    input: z.object({
+      cursoId: z.string().optional(),
+      fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Elige la fecha de la clase.'),
+      hora: z.string().regex(/^\d{1,2}:\d{2}$/, 'Elige la hora de la clase.'),
+      duracionMin: z.coerce.number().int().min(15, 'Mínimo 15 minutos.').max(240),
+      cupo: z.coerce.number().int().min(1).max(40),
+      meetingUrl: z.string().max(600).optional(),
+      /** Schedule the same class weekly for N weeks in one go. */
+      repetirSemanas: z.coerce.number().int().min(1).max(12).default(1),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const perfil = await perfilProfesor(db, actor);
+      if (!perfil) noEncontrado();
+
+      // Safeguarding gate. Adults deliver classes to children here; a teacher
+      // whose vetting is not recorded cannot be put in a room with them.
+      if (!perfil.vettingCompletadoAt) {
+        throw new ActionError({
+          code: 'FORBIDDEN',
+          message: 'Tu verificación de antecedentes todavía no está registrada. Un administrador tiene que completarla antes de que puedas agendar clases.',
+        });
+      }
+
+      let cursoId: string | null = null;
+      let cupo = input.cupo;
+      if (input.cursoId && input.cursoId.trim()) {
+        const curso = await cursoPropio(db, actor, input.cursoId);
+        if (!curso) noEncontrado();
+        cursoId = curso.id;
+        cupo = Math.min(cupo, curso.cupoMax);
+      }
+
+      const inicio = aUnixEc(input.fecha, input.hora);
+      if (inicio === null) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'Esa fecha y hora no son válidas.' });
+      }
+
+      let url: string | null = null;
+      if (input.meetingUrl && input.meetingUrl.trim()) {
+        const v = enlaceValido(input.meetingUrl);
+        if (!v.ok) throw new ActionError({ code: 'BAD_REQUEST', message: v.motivo });
+        if (await enlaceYaUsado(db, perfil.id, v.url)) {
+          throw new ActionError({
+            code: 'BAD_REQUEST',
+            message: 'Ya usaste ese enlace en otra clase. Genera uno nuevo para esta: un enlace reutilizado deja entrar a cualquiera que lo tenga guardado.',
+          });
+        }
+        url = v.url;
+        // A repeated series would reuse the one link across every week, which is
+        // exactly what the rule above exists to prevent.
+        if (input.repetirSemanas > 1) {
+          throw new ActionError({
+            code: 'BAD_REQUEST',
+            message: 'Cuando repites la clase varias semanas, deja el enlace vacío y ponle uno distinto a cada fecha después.',
+          });
+        }
+      }
+
+      const ids: string[] = [];
+      for (let i = 0; i < input.repetirSemanas; i++) {
+        const id = crypto.randomUUID();
+        await db.insert(schema.claseSesion).values({
+          id,
+          cursoId,
+          profesorId: perfil.id,
+          inicioAt: inicio + i * 7 * 86400,
+          duracionMin: input.duracionMin,
+          cupo,
+          meetingUrl: url,
+          estado: 'programada',
+        });
+        ids.push(id);
+      }
+
+      await registrarAuditoria(db, actor, 'sesion.crear', 'clase_sesion', ids[0],
+        undefined, { cursoId, cuantas: ids.length, inicioAt: inicio });
+      return { ids, cuantas: ids.length };
+    },
+  }),
+
+  guardarSesion: defineAction({
+    accept: 'form',
+    input: z.object({
+      sesionId: z.string(),
+      fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      hora: z.string().regex(/^\d{1,2}:\d{2}$/),
+      duracionMin: z.coerce.number().int().min(15).max(240),
+      cupo: z.coerce.number().int().min(1).max(40),
+      meetingUrl: z.string().max(600).optional(),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const sesion = await sesionPropia(db, actor, input.sesionId);
+      if (!sesion) noEncontrado();
+
+      const inicio = aUnixEc(input.fecha, input.hora);
+      if (inicio === null) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'Esa fecha y hora no son válidas.' });
+      }
+
+      let url: string | null = null;
+      if (input.meetingUrl && input.meetingUrl.trim()) {
+        const v = enlaceValido(input.meetingUrl);
+        if (!v.ok) throw new ActionError({ code: 'BAD_REQUEST', message: v.motivo });
+        if (await enlaceYaUsado(db, sesion.profesorId, v.url, sesion.id)) {
+          throw new ActionError({
+            code: 'BAD_REQUEST',
+            message: 'Ese enlace ya está en otra clase. Cada clase necesita su propio enlace.',
+          });
+        }
+        url = v.url;
+      }
+
+      await db.update(schema.claseSesion).set({
+        inicioAt: inicio,
+        duracionMin: input.duracionMin,
+        cupo: input.cupo,
+        meetingUrl: url,
+      }).where(eq(schema.claseSesion.id, sesion.id));
+
+      await registrarAuditoria(db, actor, 'sesion.guardar', 'clase_sesion', sesion.id);
+      return { ok: true };
+    },
+  }),
+
+  cancelarSesion: defineAction({
+    accept: 'form',
+    input: z.object({
+      sesionId: z.string(),
+      motivo: z.string().max(300).optional(),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const sesion = await sesionPropia(db, actor, input.sesionId);
+      if (!sesion) noEncontrado();
+
+      // The link dies with the class. Leaving it live is how a cancelled
+      // session's URL keeps working for whoever still has it.
+      await db.update(schema.claseSesion).set({
+        estado: 'cancelada',
+        meetingUrl: null,
+      }).where(eq(schema.claseSesion.id, sesion.id));
+
+      await registrarAuditoria(db, actor, 'sesion.cancelar', 'clase_sesion', sesion.id, input.motivo);
+      return { ok: true };
+    },
+  }),
+
+  borrarSesion: defineAction({
+    accept: 'form',
+    input: z.object({ sesionId: z.string() }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const sesion = await sesionPropia(db, actor, input.sesionId);
+      if (!sesion) noEncontrado();
+
+      await db.delete(schema.claseSesion).where(eq(schema.claseSesion.id, sesion.id));
+      await registrarAuditoria(db, actor, 'sesion.borrar', 'clase_sesion', sesion.id,
+        undefined, { inicioAt: sesion.inicioAt, cursoId: sesion.cursoId });
+      return { ok: true };
+    },
+  }),
+
+  /** Marks the register. Only students genuinely on the roster can be marked. */
+  marcarAsistencia: defineAction({
+    accept: 'form',
+    input: z.object({
+      sesionId: z.string(),
+      /** Checkbox names are `presente:<userId>`; absentees simply don't post. */
+      presentes: z.union([z.string(), z.array(z.string())]).optional(),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const sesion = await sesionPropia(db, actor, input.sesionId);
+      if (!sesion) noEncontrado();
+
+      const roster = await registroDeSesion(db, sesion.id, sesion.cursoId);
+      if (roster.length === 0) {
+        throw new ActionError({
+          code: 'BAD_REQUEST',
+          message: 'Esta clase todavía no tiene estudiantes matriculados.',
+        });
+      }
+
+      const enviados = input.presentes === undefined
+        ? []
+        : Array.isArray(input.presentes) ? input.presentes : [input.presentes];
+      // Anything not on the roster is discarded rather than trusted.
+      const permitidos = new Set(roster.map((r) => r.userId));
+      const presentes = new Set(enviados.filter((id) => permitidos.has(id)));
+
+      const existentes = await db.select().from(schema.sesionAsistente)
+        .where(eq(schema.sesionAsistente.sesionId, sesion.id));
+      const filaDe = new Map(existentes.map((e) => [e.estudianteUserId, e]));
+
+      const nuevas: { id: string; sesionId: string; estudianteUserId: string; asistio: boolean }[] = [];
+      for (const r of roster) {
+        const asistio = presentes.has(r.userId);
+        const fila = filaDe.get(r.userId);
+        if (!fila) {
+          nuevas.push({ id: crypto.randomUUID(), sesionId: sesion.id, estudianteUserId: r.userId, asistio });
+        } else if (fila.asistio !== asistio) {
+          await db.update(schema.sesionAsistente).set({ asistio })
+            .where(eq(schema.sesionAsistente.id, fila.id));
+        }
+      }
+      if (nuevas.length) await db.insert(schema.sesionAsistente).values(nuevas);
+
+      // Marking the register is what makes a class "dictada": it is the only
+      // evidence the class actually happened. But only once it has started —
+      // marking a future class taught silently drops it off every student's
+      // "próximas clases" list, which is how a class quietly disappears.
+      const ahora = Math.floor(Date.now() / 1000);
+      if (sesion.estado === 'programada' && ahora >= sesion.inicioAt) {
+        await db.update(schema.claseSesion).set({ estado: 'dictada' })
+          .where(eq(schema.claseSesion.id, sesion.id));
+      }
+
+      await registrarAuditoria(db, actor, 'sesion.asistencia', 'clase_sesion', sesion.id,
+        undefined, { presentes: presentes.size, total: roster.length });
+      return { ok: true, presentes: presentes.size, total: roster.length };
+    },
+  }),
+
+  /**
+   * Records that a teacher's background check was verified. Admin only, and it
+   * writes who verified it — the point of the control is that it is auditable,
+   * not that a box got ticked.
+   */
+  registrarVetting: defineAction({
+    accept: 'form',
+    input: z.object({
+      profesorId: z.string(),
+      verificadoPor: z.string().min(3, 'Escribe quién hizo la verificación.').max(140),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      if (!esAdmin(actor.roles)) noEncontrado();
+
+      const filas = await db.select().from(schema.profesor)
+        .where(eq(schema.profesor.id, input.profesorId)).limit(1);
+      if (!filas[0]) noEncontrado();
+
+      await db.update(schema.profesor).set({
+        vettingCompletadoAt: sql`(unixepoch())`,
+        vettingVerificadoPor: input.verificadoPor,
+      }).where(eq(schema.profesor.id, input.profesorId));
+
+      await registrarAuditoria(db, actor, 'profesor.vetting', 'profesor', input.profesorId,
+        `Verificado por ${input.verificadoPor}`);
+      return { ok: true };
+    },
+  }),
+
+  /* ----------------------------------------------------------- estudiantes */
+
+  /**
+   * Gives a student a place in a course without a payment — the free trial and
+   * courtesy places the school actually runs on. The student must already have
+   * an account: this never creates one, so nobody's child is registered by a
+   * third party typing an email address.
+   */
+  matricularEstudiante: defineAction({
+    accept: 'form',
+    input: z.object({
+      cursoId: z.string(),
+      email: z.string().email('Escribe un correo válido.').max(200),
+      origen: z.enum(['cortesia', 'prueba_gratis']).default('cortesia'),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const curso = await cursoPropio(db, actor, input.cursoId);
+      if (!curso) noEncontrado();
+
+      const usuario = await buscarUsuarioPorEmail(db, input.email);
+      if (!usuario) {
+        throw new ActionError({
+          code: 'NOT_FOUND',
+          message: 'No hay ninguna cuenta con ese correo. Pídele que se registre primero y vuelve a intentarlo.',
+        });
+      }
+
+      const existente = await yaMatriculado(db, usuario.id, curso.id);
+      if (existente?.estado === 'activa') {
+        throw new ActionError({ code: 'BAD_REQUEST', message: `${usuario.name} ya está en este curso.` });
+      }
+      if (existente) {
+        // Re-activate the revoked row rather than inserting a duplicate: the
+        // (estudiante, curso) pair is unique.
+        await db.update(schema.matricula).set({ estado: 'activa' })
+          .where(eq(schema.matricula.id, existente.id));
+        await registrarAuditoria(db, actor, 'matricula.reactivar', 'matricula', existente.id);
+        return { ok: true, nombre: usuario.name, reactivada: true };
+      }
+
+      const activas = await db.select({ id: schema.matricula.id })
+        .from(schema.matricula).where(and(
+          eq(schema.matricula.cursoId, curso.id),
+          eq(schema.matricula.estado, 'activa'),
+        ));
+      if (activas.length >= curso.cupoMax) {
+        throw new ActionError({
+          code: 'BAD_REQUEST',
+          message: `El curso está lleno (${curso.cupoMax} cupos). Sube el cupo en la ficha del curso si quieres agregar a alguien más.`,
+        });
+      }
+
+      const id = crypto.randomUUID();
+      await db.insert(schema.matricula).values({
+        id, estudianteUserId: usuario.id, cursoId: curso.id, origen: input.origen, estado: 'activa',
+      });
+      await registrarAuditoria(db, actor, 'matricula.crear', 'matricula', id,
+        `Alta manual (${input.origen})`, { cursoId: curso.id, estudianteUserId: usuario.id });
+      return { ok: true, nombre: usuario.name, reactivada: false };
+    },
+  }),
+
+  revocarMatricula: defineAction({
+    accept: 'form',
+    input: z.object({
+      matriculaId: z.string(),
+      motivo: z.string().max(300).optional(),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const filas = await db.select().from(schema.matricula)
+        .where(eq(schema.matricula.id, input.matriculaId)).limit(1);
+      const matricula = filas[0];
+      if (!matricula) noEncontrado();
+
+      // Ownership resolves through the course, never from the posted id alone.
+      const curso = await cursoPropio(db, actor, matricula.cursoId);
+      if (!curso) noEncontrado();
+
+      // Revoked, never deleted: the progress and attendance rows are the record
+      // of a course somebody paid for.
+      await db.update(schema.matricula).set({ estado: 'revocada' })
+        .where(eq(schema.matricula.id, matricula.id));
+
+      await registrarAuditoria(db, actor, 'matricula.revocar', 'matricula', matricula.id,
+        input.motivo, { cursoId: matricula.cursoId, estudianteUserId: matricula.estudianteUserId });
+      return { ok: true };
     },
   }),
 };

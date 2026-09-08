@@ -2,6 +2,7 @@
 import Aprendizaje from '../../layouts/Aprendizaje.astro';
 import { getDb } from '../../lib/db';
 import { resumenAlumno, fechaCorta } from '../../lib/progreso';
+import { proximasClasesAlumno, diaCorto, horaDe, cuando } from '../../lib/agenda';
 import { waLink } from '../../config';
 
 export const prerender = false;
@@ -9,8 +10,10 @@ export const prerender = false;
 const actor = Astro.locals.actor!;
 const usuario = Astro.locals.usuario!;
 const db = getDb();
+const ahora = Math.floor(Date.now() / 1000);
 
 const { detalle, avisos, sinLeer, stats, continuar } = await resumenAlumno(db, actor);
+const proximas = await proximasClasesAlumno(db, actor, ahora, 4);
 const primerNombre = (usuario.nombre ?? '').split(' ')[0];
 
 // Only counts that come from real rows. The reference design shows hours spent,
@@ -103,6 +106,33 @@ const recientes = avisos.slice(0, 4);
         </div>
 
         <div class="col">
+          {proximas.length > 0 && (
+            <section class="panel">
+              <header class="panel-head"><h2>Próximas clases</h2></header>
+              <ul class="clases">
+                {proximas.map((s) => (
+                  <li class="clase">
+                    <div class="clase-fecha">
+                      <span class="clase-dia">{diaCorto(s.inicioAt)}</span>
+                      <span class="clase-hora">{horaDe(s.inicioAt)}</span>
+                    </div>
+                    <div class="clase-cuerpo">
+                      <p class="clase-curso">{s.cursoTitulo}</p>
+                      <p class="clase-cuando">{cuando(s.inicioAt, ahora)} · {s.duracionMin} min</p>
+                    </div>
+                    {s.enlace ? (
+                      <a class="btn btn-sun chico" href={s.enlace} target="_blank" rel="noopener noreferrer">
+                        Entrar
+                      </a>
+                    ) : (
+                      <span class="clase-espera">El enlace aparece 20 min antes</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section class="panel">
             <header class="panel-head">
               <h2>Avisos</h2>
@@ -172,6 +202,22 @@ const recientes = avisos.slice(0, 4);
   .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
   .panel h2 { font-size: var(--text-lg); margin: 0; }
   .panel-link { font-size: var(--text-sm); color: var(--color-primary); font-weight: 700; text-decoration: none; }
+
+  .clases { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.625rem; }
+  .clase {
+    display: flex; align-items: center; gap: 0.875rem; flex-wrap: wrap;
+    padding: 0.75rem 0.875rem; border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); background: var(--color-surface);
+  }
+  .clase-fecha { text-align: center; flex: none; }
+  .clase-dia { display: block; font-family: var(--font-display); font-weight: 800; font-size: var(--text-xs); white-space: nowrap; }
+  .clase-dia::first-letter { text-transform: uppercase; }
+  .clase-hora { display: block; font-size: var(--text-xs); color: var(--color-ink-faint); white-space: nowrap; }
+  .clase-cuerpo { flex: 1; min-width: 8rem; }
+  .clase-curso { font-size: var(--text-sm); font-weight: 700; margin: 0; }
+  .clase-cuando { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0; }
+  .clase-espera { font-size: var(--text-xs); color: var(--color-ink-faint); font-style: italic; max-width: 8rem; }
+  .chico { min-height: 36px; padding: 0.4375rem 0.875rem; font-size: var(--text-sm); }
 
   .barra { height: 8px; border-radius: var(--radius-pill); background: var(--color-sunken); overflow: hidden; }
   .barra span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); }

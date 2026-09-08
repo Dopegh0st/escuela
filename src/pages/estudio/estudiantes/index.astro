@@ -1,28 +1,241 @@
 ---
 import Estudio from '../../../layouts/Estudio.astro';
+import { getDb } from '../../../lib/db';
+import { resumenEstudiantes } from '../../../lib/estudiantes';
+import { fechaCorta } from '../../../lib/progreso';
+import { actions } from 'astro:actions';
 
 export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const db = getDb();
+
+const { cursos, filas } = await resumenEstudiantes(db, actor);
+
+const matriculado = Astro.getActionResult(actions.matricularEstudiante);
+const revocado = Astro.getActionResult(actions.revocarMatricula);
+
+function mensajeError(err: unknown): string | null {
+  if (!err) return null;
+  const e = err as { fields?: Record<string, string[] | undefined>; message?: string };
+  if (e.fields) for (const m of Object.values(e.fields)) if (m?.length) return m[0];
+  const m = e.message ?? '';
+  return m.startsWith('Failed to validate') ? 'Revisa los datos e intenta de nuevo.' : m || 'No se pudo agregar.';
+}
+const errorAlta = mensajeError(matriculado?.error);
+
+const totalMarcados = filas.reduce((n, f) => n + f.marcados, 0);
+const totalPresentes = filas.reduce((n, f) => n + f.presentes, 0);
+const pctMedio = filas.length
+  ? Math.round(filas.reduce((n, f) => n + f.pct, 0) / filas.length)
+  : 0;
+
+const DATOS = [
+  { icono: '🎒', valor: String(filas.length), etiqueta: 'Estudiantes',
+    pie: `en ${cursos.length} ${cursos.length === 1 ? 'curso' : 'cursos'}`, color: 'var(--color-primary)' },
+  { icono: '📈', valor: `${pctMedio}%`, etiqueta: 'Avance medio',
+    pie: 'de las lecciones publicadas', color: 'var(--color-grape)' },
+  { icono: '✋', valor: totalMarcados ? `${Math.round((totalPresentes / totalMarcados) * 100)}%` : '—',
+    etiqueta: 'Asistencia', pie: totalMarcados ? `${totalPresentes} de ${totalMarcados} marcas` : 'sin clases registradas',
+    color: 'var(--color-accent)' },
+];
 ---
 
 <Estudio title="Estudiantes" seccion="estudiantes">
-  <div class="pendiente">
-    <span class="emoji" aria-hidden="true">🎒</span>
-    <h2>Estudiantes</h2>
-    <p>Aquí vas a ver quién está matriculado en tus cursos, su progreso y su asistencia. Se activa cuando entre el primer estudiante.</p>
-    <a class="btn btn-secondary" href="/estudio/">Volver al inicio</a>
+  {errorAlta && <p class="msg malo">{errorAlta}</p>}
+  {matriculado && !matriculado.error && (
+    <p class="msg bien">
+      {matriculado.data.reactivada
+        ? `${matriculado.data.nombre} vuelve a tener el cupo.`
+        : `${matriculado.data.nombre} ya está en el curso.`}
+    </p>
+  )}
+  {revocado && !revocado.error && <p class="msg bien">Cupo retirado. El historial se conserva.</p>}
+
+  {filas.length > 0 && (
+    <div class="stats">
+      {DATOS.map((d) => (
+        <article class="stat" style={`--c:${d.color}`}>
+          <span class="stat-icono" aria-hidden="true">{d.icono}</span>
+          <p class="stat-valor">{d.valor}</p>
+          <p class="stat-etiqueta">{d.etiqueta}</p>
+          <p class="stat-pie">{d.pie}</p>
+        </article>
+      ))}
+    </div>
+  )}
+
+  <div class="cols">
+    <section class="principal">
+      {filas.length === 0 ? (
+        <div class="vacio">
+          <span aria-hidden="true">🎒</span>
+          <p><strong>Todavía no tienes estudiantes.</strong></p>
+          <p class="vacio-sub">
+            {cursos.length === 0
+              ? 'Crea un curso primero. Cuando alguien se matricule, aparece aquí con su avance y su asistencia.'
+              : 'Cuando alguien se matricule aparece aquí. También puedes darle el cupo tú mismo con el formulario de al lado.'}
+          </p>
+          {cursos.length === 0 && <a class="btn btn-primary" href="/estudio/cursos/">Crear un curso</a>}
+        </div>
+      ) : (
+        <div class="tabla-caja">
+          <table>
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                <th class="num">Avance</th>
+                <th class="num">Asistencia</th>
+                <th class="num">Última vez</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr>
+                  <td>
+                    <a class="nombre" href={`/estudio/estudiante/${f.userId}/`}>{f.nombre}</a>
+                    <span class="mail">{f.email}</span>
+                  </td>
+                  <td class="cursos-celda">
+                    {f.cursos.map((c) => <span class="chip">{c.titulo}</span>)}
+                  </td>
+                  <td class="num">
+                    {f.total === 0 ? (
+                      <span class="tenue">sin lecciones</span>
+                    ) : (
+                      <span class="avance">
+                        <span class="barra"><span style={`width:${f.pct}%`}></span></span>
+                        <span class="avance-txt">{f.pct}% · {f.completas}/{f.total}</span>
+                      </span>
+                    )}
+                  </td>
+                  <td class="num">
+                    {f.marcados === 0
+                      ? <span class="tenue">—</span>
+                      : <span class:list={['asist', f.presentes < f.marcados && 'baja']}>
+                          {f.presentes}/{f.marcados}
+                        </span>}
+                  </td>
+                  <td class="num">
+                    {f.ultimaActividad
+                      ? <span>{fechaCorta(f.ultimaActividad)}</span>
+                      : <span class="tenue">nunca entró</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+
+    <!-- ==================== Manual enrolment ==================== -->
+    <section class="panel">
+      <h2>Dar un cupo</h2>
+      <p class="sub">
+        Para la clase de prueba o una cortesía. La persona tiene que tener cuenta:
+        pídele que se registre y luego pon su correo aquí.
+      </p>
+
+      {cursos.length === 0 ? (
+        <p class="nada">Primero crea un curso.</p>
+      ) : (
+        <form method="POST" action={actions.matricularEstudiante}>
+          <label for="cursoId">Curso</label>
+          <select id="cursoId" name="cursoId" required>
+            {cursos.map((c) => <option value={c.id}>{c.titulo}</option>)}
+          </select>
+
+          <label for="email">Correo del estudiante</label>
+          <input id="email" name="email" type="email" required maxlength="200"
+                 placeholder="nombre@correo.com" />
+
+          <label for="origen">Motivo</label>
+          <select id="origen" name="origen">
+            <option value="prueba_gratis">Clase de prueba gratis</option>
+            <option value="cortesia">Cortesía</option>
+          </select>
+
+          <button class="btn btn-primary ancho" type="submit">Dar el cupo</button>
+        </form>
+      )}
+    </section>
   </div>
 </Estudio>
 
 <style>
-  .pendiente {
-    background: var(--color-raised);
-    border: 2px dashed var(--color-border-strong);
-    border-radius: var(--radius-lg);
-    padding: 3.5rem 1.5rem;
-    text-align: center;
-    max-width: 34rem;
+  .msg { border-radius: var(--radius-md); padding: 0.875rem 1.125rem; font-weight: 600; margin: 0 0 1.25rem; font-size: var(--text-sm); }
+  .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
+  .msg.malo { background: #fdecec; color: var(--color-danger); }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; max-width: 42rem; }
+  .stat {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.125rem; border-top: 4px solid var(--c);
   }
-  .emoji { font-size: 2.5rem; }
-  h2 { font-size: var(--text-xl); margin: 0.75rem 0 0.375rem; }
-  p { color: var(--color-ink-soft); margin: 0 auto 1.5rem; max-width: 42ch; }
+  .stat-icono { font-size: 1.25rem; }
+  .stat-valor { font-family: var(--font-display); font-weight: 800; font-size: 1.875rem; line-height: 1; margin: 0.375rem 0 0.125rem; color: var(--c); }
+  .stat-etiqueta { font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm); margin: 0; }
+  .stat-pie { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.125rem 0 0; }
+
+  .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+  @media (min-width: 1050px) { .cols { grid-template-columns: 1fr 20rem; } }
+
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
+  .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.25rem; line-height: 1.55; }
+  .nada { color: var(--color-ink-faint); font-size: var(--text-sm); font-style: italic; margin: 0; }
+
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  input, select {
+    width: 100%; padding: 0.625rem 0.75rem; font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  input:focus, select:focus { border-color: var(--color-primary); }
+  .ancho { width: 100%; }
+
+  .vacio {
+    text-align: center; padding: 3rem 1.5rem; background: var(--color-raised);
+    border: 2px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+  }
+  .vacio span { font-size: 2.5rem; }
+  .vacio p { margin: 0.5rem 0 0; }
+  .vacio-sub { color: var(--color-ink-soft); font-size: var(--text-sm); max-width: 40ch; margin: 0.5rem auto 1.25rem; }
+
+  /* The table scrolls inside its own box so the page never scrolls sideways. */
+  .tabla-caja {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 42rem; }
+  th, td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--color-sunken); }
+  th {
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-xs);
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-ink-faint);
+    background: var(--color-sunken);
+  }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .nombre { display: block; font-weight: 700; font-size: var(--text-sm); color: inherit; text-decoration: none; }
+  .nombre:hover { color: var(--color-primary); text-decoration: underline; }
+  .mail { display: block; font-size: var(--text-xs); color: var(--color-ink-faint); }
+
+  .cursos-celda { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+  .chip {
+    font-size: var(--text-xs); font-weight: 700; padding: 0.1875rem 0.5rem;
+    border-radius: var(--radius-pill); background: var(--color-sunken); color: var(--color-ink-soft);
+  }
+
+  .avance { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+  .barra { display: block; width: 5.5rem; height: 6px; border-radius: var(--radius-pill); background: var(--color-sunken); overflow: hidden; }
+  .barra span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); }
+  .avance-txt { font-size: var(--text-xs); color: var(--color-ink-faint); }
+
+  .asist { font-weight: 700; font-size: var(--text-sm); color: var(--color-accent); }
+  .asist.baja { color: #b06a00; }
+  .tenue { color: var(--color-ink-faint); font-size: var(--text-xs); font-style: italic; }
 </style>
