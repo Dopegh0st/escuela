@@ -4,15 +4,24 @@ import { SITE } from '../config';
 
 interface Props {
   title: string;
+  seccion?: 'inicio' | 'cursos' | 'avisos';
   volverA?: string;
   volverTexto?: string;
-  ancho?: boolean;
+  /** Narrow column for reading a lesson. */
+  lectura?: boolean;
+  sinLeer?: number;
 }
 
-const { title, volverA, volverTexto, ancho = false } = Astro.props;
+const { title, seccion = 'inicio', volverA, volverTexto, lectura = false, sinLeer = 0 } = Astro.props;
 const usuario = Astro.locals.usuario;
 const inicial = (usuario?.nombre ?? '?').charAt(0).toUpperCase();
 const esProfe = usuario?.roles?.includes('profesor') || usuario?.roles?.includes('admin');
+
+const MENU = [
+  { id: 'inicio', href: '/mi-aprendizaje/',        icono: '🏠', texto: 'Inicio' },
+  { id: 'cursos', href: '/mi-aprendizaje/cursos/', icono: '📚', texto: 'Mis cursos' },
+  { id: 'avisos', href: '/mi-aprendizaje/avisos/', icono: '🔔', texto: 'Avisos', badge: sinLeer },
+];
 ---
 
 <!doctype html>
@@ -32,91 +41,195 @@ const esProfe = usuario?.roles?.includes('profesor') || usuario?.roles?.includes
   <body>
     <a href="#contenido" class="skip">Saltar al contenido</a>
 
-    <header class="barra">
-      <div class="barra-inner">
-        <a href="/mi-aprendizaje/" class="marca">{SITE.name}</a>
+    <div class="shell">
+      <aside class="lateral" id="lateral">
+        <a href="/mi-aprendizaje/" class="marca">
+          <span class="marca-icono" aria-hidden="true">◆</span>
+          <span>{SITE.name}</span>
+        </a>
 
-        <nav class="nav" aria-label="Principal">
-          <a href="/mi-aprendizaje/">Mis cursos</a>
-          {esProfe && <a href="/estudio/">Estudio</a>}
+        <nav aria-label="Menú">
+          <p class="grupo">Principal</p>
+          <ul>
+            {MENU.map((m) => (
+              <li>
+                <a href={m.href} class:list={['item', seccion === m.id && 'activo']}
+                   aria-current={seccion === m.id ? 'page' : undefined}>
+                  <span class="item-icono" aria-hidden="true">{m.icono}</span>
+                  <span class="item-texto">{m.texto}</span>
+                  {m.badge ? <span class="badge-n">{m.badge}</span> : null}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <p class="grupo">Otros</p>
+          <ul>
+            {esProfe && (
+              <li>
+                <a href="/estudio/" class="item">
+                  <span class="item-icono" aria-hidden="true">🛠️</span>
+                  <span class="item-texto">Estudio</span>
+                </a>
+              </li>
+            )}
+            <li>
+              <a href="/cursos/" class="item" target="_blank" rel="noopener">
+                <span class="item-icono" aria-hidden="true">🌐</span>
+                <span class="item-texto">Ver el sitio</span>
+              </a>
+            </li>
+          </ul>
         </nav>
+      </aside>
 
-        <div class="yo">
-          <span class="nombre">{usuario?.nombre}</span>
-          <span class="avatar" aria-hidden="true">{inicial}</span>
-          <button class="salir" id="salir" type="button">Salir</button>
-        </div>
+      <div class="velo" id="velo" hidden></div>
+
+      <div class="principal">
+        <header class="barra">
+          <button class="menu-btn" id="menu-btn" type="button" aria-label="Abrir menú" aria-expanded="false">
+            <span aria-hidden="true">☰</span>
+          </button>
+
+          <div class="barra-titulo">
+            {volverA && <a class="volver" href={volverA}>← {volverTexto ?? 'Volver'}</a>}
+            <h1>{title}</h1>
+          </div>
+
+          <div class="yo">
+            <a class="campana" href="/mi-aprendizaje/avisos/" aria-label={`Avisos${sinLeer ? `, ${sinLeer} sin leer` : ''}`}>
+              <span aria-hidden="true">🔔</span>
+              {sinLeer > 0 && <span class="punto">{sinLeer}</span>}
+            </a>
+            <div class="yo-info">
+              <p class="yo-nombre">{usuario?.nombre}</p>
+              <p class="yo-rol">Estudiante</p>
+            </div>
+            <span class="avatar" aria-hidden="true">{inicial}</span>
+            <button class="salir" id="salir" type="button">Salir</button>
+          </div>
+        </header>
+
+        <main id="contenido" class:list={['contenido', lectura && 'lectura']}>
+          <slot />
+        </main>
       </div>
-    </header>
-
-    {volverA && (
-      <div class="volver-barra">
-        <div class:list={['contenedor', ancho && 'ancho']}>
-          <a class="volver" href={volverA}>← {volverTexto ?? 'Volver'}</a>
-        </div>
-      </div>
-    )}
-
-    <main id="contenido" class:list={['contenedor', ancho && 'ancho']}>
-      <slot />
-    </main>
+    </div>
 
     <script is:inline>
       document.getElementById('salir')?.addEventListener('click', async () => {
         await fetch('/api/auth/sign-out', { method: 'POST' });
         window.location.href = '/entrar';
       });
+      const lateral = document.getElementById('lateral');
+      const velo = document.getElementById('velo');
+      const btn = document.getElementById('menu-btn');
+      function alternar(abrir) {
+        lateral.classList.toggle('abierto', abrir);
+        velo.hidden = !abrir;
+        btn.setAttribute('aria-expanded', String(abrir));
+      }
+      btn?.addEventListener('click', () => alternar(!lateral.classList.contains('abierto')));
+      velo?.addEventListener('click', () => alternar(false));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') alternar(false); });
     </script>
 
     <style>
-      body { background: var(--color-surface); }
-
+      body { background: var(--color-sunken); }
       .skip { position: absolute; left: -9999px; top: 0; background: var(--color-ink); color: #fff; padding: 0.75rem 1.25rem; z-index: 100; }
       .skip:focus { left: 0; }
 
+      .shell { display: flex; min-height: 100vh; }
+
+      .lateral {
+        position: fixed; inset: 0 auto 0 0; width: 15rem;
+        background: var(--color-deep); color: #fff;
+        padding: 1.25rem 0.875rem;
+        display: flex; flex-direction: column; gap: 1.5rem;
+        z-index: 50; overflow-y: auto;
+        transform: translateX(-100%); transition: transform 0.22s ease;
+      }
+      .lateral.abierto { transform: translateX(0); }
+      .marca {
+        display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.625rem;
+        color: #fff; text-decoration: none;
+        font-family: var(--font-display); font-weight: 800; font-size: var(--text-lg);
+      }
+      .marca-icono { color: var(--color-sun); }
+      .grupo {
+        font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.12em;
+        color: #8b83bd; font-weight: 800; font-family: var(--font-display);
+        margin: 0 0 0.5rem 0.625rem;
+      }
+      nav ul { list-style: none; padding: 0; margin: 0 0 1.5rem; display: grid; gap: 0.1875rem; }
+      .item {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.6875rem 0.75rem; border-radius: var(--radius-md);
+        color: #cfc9ea; text-decoration: none; font-weight: 600; font-size: var(--text-sm);
+      }
+      .item:hover { background: rgb(255 255 255 / 0.08); color: #fff; }
+      .item-texto { flex: 1; }
+      .item.activo { background: var(--color-accent); color: #fff; box-shadow: inset 3px 0 0 var(--color-sun); }
+      .badge-n {
+        background: var(--color-primary); color: #fff;
+        font-size: 0.6875rem; font-weight: 800; font-family: var(--font-display);
+        min-width: 1.25rem; height: 1.25rem; padding: 0 0.3125rem;
+        border-radius: var(--radius-pill); display: grid; place-items: center;
+      }
+
+      .velo { position: fixed; inset: 0; background: rgb(36 31 61 / 0.5); z-index: 45; }
+
+      .principal { flex: 1; min-width: 0; display: flex; flex-direction: column; }
       .barra {
-        position: sticky; top: 0; z-index: 40;
-        background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+        position: sticky; top: 0; z-index: 30;
+        background: color-mix(in srgb, var(--color-sunken) 92%, transparent);
         backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--color-border);
+        display: flex; align-items: center; gap: 1rem;
+        padding: 0.875rem 1.25rem; min-height: 68px;
       }
-      .barra-inner {
-        max-width: 62rem; margin-inline: auto;
-        padding: 0 1.25rem; height: 62px;
-        display: flex; align-items: center; gap: 1.25rem;
+      .menu-btn {
+        background: var(--color-raised); border: 2px solid var(--color-border);
+        border-radius: var(--radius-md); width: 40px; height: 40px;
+        cursor: pointer; font-size: 1.125rem; color: var(--color-ink);
       }
-      .marca {
-        font-family: var(--font-display); font-weight: 800;
-        font-size: var(--text-lg); color: var(--color-ink); text-decoration: none;
-      }
-      .nav { display: none; gap: 1.25rem; }
-      .nav a { color: var(--color-ink-soft); text-decoration: none; font-weight: 600; font-size: var(--text-sm); }
-      .nav a:hover { color: var(--color-primary); }
+      .barra-titulo { min-width: 0; }
+      .volver { font-size: var(--text-xs); color: var(--color-primary); text-decoration: none; font-weight: 700; }
+      .barra h1 { font-size: var(--text-xl); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-      .yo { margin-left: auto; display: flex; align-items: center; gap: 0.625rem; }
-      .nombre { display: none; font-size: var(--text-sm); color: var(--color-ink-soft); font-weight: 600; }
+      .yo { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+      .campana { position: relative; text-decoration: none; font-size: 1.125rem; line-height: 1; }
+      .punto {
+        position: absolute; top: -0.4rem; right: -0.5rem;
+        background: var(--color-primary); color: #fff;
+        font-size: 0.625rem; font-weight: 800; font-family: var(--font-display);
+        min-width: 1.05rem; height: 1.05rem; padding: 0 0.25rem;
+        border-radius: var(--radius-pill); display: grid; place-items: center;
+      }
+      .yo-info { display: none; text-align: right; }
+      .yo-nombre { font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm); margin: 0; }
+      .yo-rol { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0; }
       .avatar {
-        width: 2rem; height: 2rem; border-radius: var(--radius-pill);
-        background: var(--color-accent); color: #fff;
-        display: grid; place-items: center;
-        font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm);
+        width: 2.25rem; height: 2.25rem; flex: none; border-radius: var(--radius-pill);
+        background: var(--color-accent); color: #fff; display: grid; place-items: center;
+        font-family: var(--font-display); font-weight: 800;
       }
       .salir {
-        background: none; border: none; cursor: pointer;
-        color: var(--color-ink-faint); font-size: var(--text-sm);
-        font-weight: 700; font-family: var(--font-display);
+        background: none; border: none; cursor: pointer; color: var(--color-ink-faint);
+        font-size: var(--text-sm); font-weight: 700; font-family: var(--font-display);
       }
       .salir:hover { color: var(--color-danger); }
 
-      .volver-barra { border-bottom: 1px solid var(--color-border); background: var(--color-sunken); }
-      .volver { display: inline-block; padding: 0.625rem 0; color: var(--color-primary); font-weight: 700; font-size: var(--text-sm); text-decoration: none; }
+      .contenido { padding: 1.5rem 1.25rem 4rem; flex: 1; }
+      .contenido.lectura { max-width: 50rem; }
 
-      .contenedor { max-width: 62rem; margin-inline: auto; padding: 1.75rem 1.25rem 4rem; }
-      .contenedor.ancho { max-width: 48rem; }
-
-      @media (min-width: 640px) {
-        .nav { display: flex; }
-        .nombre { display: inline; }
+      @media (min-width: 900px) {
+        .lateral { transform: none; }
+        .velo, .menu-btn { display: none; }
+        .principal { margin-left: 15rem; }
+        .yo-info { display: block; }
+        .barra { padding-inline: 2rem; }
+        .contenido { padding: 2rem 2rem 4rem; }
       }
     </style>
   </body>

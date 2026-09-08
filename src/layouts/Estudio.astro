@@ -4,7 +4,7 @@ import { SITE } from '../config';
 
 interface Props {
   title: string;
-  seccion?: 'inicio' | 'cursos' | 'estudiantes' | 'agenda' | 'ajustes';
+  seccion?: 'inicio' | 'cursos' | 'avisos' | 'estudiantes' | 'agenda' | 'ajustes';
   volverA?: string;
   volverTexto?: string;
 }
@@ -16,6 +16,7 @@ const inicial = (usuario?.nombre ?? '?').charAt(0).toUpperCase();
 const MENU_PRINCIPAL = [
   { id: 'inicio',      href: '/estudio/',             icono: '🏠', texto: 'Inicio' },
   { id: 'cursos',      href: '/estudio/cursos/',      icono: '📚', texto: 'Mis cursos' },
+  { id: 'avisos',      href: '/estudio/avisos/',      icono: '🔔', texto: 'Avisos' },
   { id: 'estudiantes', href: '/estudio/estudiantes/', icono: '🎒', texto: 'Estudiantes' },
   { id: 'agenda',      href: '/estudio/agenda/',      icono: '🗓️', texto: 'Agenda' },
 ];

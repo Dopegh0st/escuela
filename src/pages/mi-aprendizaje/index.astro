@@ -1,9 +1,8 @@
 ---
 import Aprendizaje from '../../layouts/Aprendizaje.astro';
-import { getDb, schema } from '../../lib/db';
-import { matriculasPropias } from '../../lib/scope';
+import { getDb } from '../../lib/db';
+import { resumenAlumno, fechaCorta } from '../../lib/progreso';
 import { waLink } from '../../config';
-import { inArray, eq } from 'drizzle-orm';
 
 export const prerender = false;
 
@@ -11,101 +10,123 @@ const actor = Astro.locals.actor!;
 const usuario = Astro.locals.usuario!;
 const db = getDb();
 
-const matriculas = await matriculasPropias(db, actor);
-const cursoIds = matriculas.map((m) => m.cursoId);
-
-const cursos = cursoIds.length
-  ? await db.select().from(schema.curso).where(inArray(schema.curso.id, cursoIds))
-  : [];
-
-// Progress per course: published lessons done vs total.
-const resumen = await Promise.all(cursos.map(async (c) => {
-  const mods = await db.select({ id: schema.modulo.id })
-    .from(schema.modulo).where(eq(schema.modulo.cursoId, c.id));
-  const modIds = mods.map((m) => m.id);
-  const lecs = modIds.length
-    ? await db.select({ id: schema.leccion.id, estado: schema.leccion.estado })
-        .from(schema.leccion).where(inArray(schema.leccion.moduloId, modIds))
-    : [];
-  const publicadas = lecs.filter((l) => l.estado === 'publicada');
-
-  const matricula = matriculas.find((m) => m.cursoId === c.id)!;
-  const prog = publicadas.length
-    ? await db.select().from(schema.progreso)
-        .where(eq(schema.progreso.matriculaId, matricula.id))
-    : [];
-  const hechas = prog.filter(
-    (p) => p.completada && publicadas.some((l) => l.id === p.leccionId),
-  ).length;
-
-  // "Continue where you left off": first published lesson not yet done.
-  const pendiente = publicadas.find(
-    (l) => !prog.some((p) => p.leccionId === l.id && p.completada),
-  );
-
-  return {
-    curso: c,
-    total: publicadas.length,
-    hechas,
-    pct: publicadas.length ? Math.round((hechas / publicadas.length) * 100) : 0,
-    siguienteId: pendiente?.id ?? null,
-  };
-}));
-
+const { detalle, avisos, sinLeer, stats, continuar } = await resumenAlumno(db, actor);
 const primerNombre = (usuario.nombre ?? '').split(' ')[0];
-const enCurso = resumen.find((r) => r.siguienteId && r.hechas > 0)
-  ?? resumen.find((r) => r.siguienteId);
+
+// Only counts that come from real rows. The reference design shows hours spent,
+// quiz scores and streaks; none of that is tracked yet, and inventing it would
+// make a working feature indistinguishable from a decorative one.
+const DATOS = [
+  { icono: '📚', valor: stats.cursos,          etiqueta: 'Cursos inscritos', color: 'var(--color-primary)' },
+  { icono: '🎉', valor: stats.completados,     etiqueta: 'Completados',      color: 'var(--color-accent)' },
+  { icono: '✅', valor: stats.leccionesHechas, etiqueta: `de ${stats.leccionesTotal} lecciones`, color: 'var(--color-grape)' },
+  { icono: '🔔', valor: sinLeer,               etiqueta: 'Avisos nuevos',    color: '#c98a10' },
+];
+
+const ETIQUETA: Record<string, string> = {
+  'completado': 'Completado',
+  'en-curso': 'En progreso',
+  'sin-empezar': 'Sin empezar',
+  'preparandose': 'Preparándose',
+};
+const recientes = avisos.slice(0, 4);
 ---
 
-<Aprendizaje title="Mis cursos">
+<Aprendizaje title="Inicio" seccion="inicio" sinLeer={sinLeer}>
   <p class="saludo">Hola, {primerNombre} 👋</p>
 
-  {cursos.length === 0 ? (
+  {detalle.length === 0 ? (
     <div class="vacio">
       <span class="vacio-emoji" aria-hidden="true">🎒</span>
-      <h1>Todavía no tienes cursos</h1>
-      <p>
-        Cuando te inscribas en uno, aparece aquí y puedes empezar de una.
-        ¿Quieres que te contemos qué hay abierto?
-      </p>
+      <h2>Todavía no tienes cursos</h2>
+      <p>Cuando te inscribas en uno aparece aquí y puedes empezar de una.</p>
       <div class="vacio-btns">
         <a class="btn btn-primary" href="/cursos/">Ver los cursos</a>
-        <a class="btn btn-whatsapp" href={waLink('Hola, quiero saber qué cursos hay abiertos.')}>
-          Preguntar por WhatsApp
-        </a>
+        <a class="btn btn-whatsapp" href={waLink('Hola, quiero saber qué cursos hay abiertos.')}>Preguntar por WhatsApp</a>
       </div>
     </div>
   ) : (
     <>
-      {enCurso && (
-        <section class="seguir">
-          <p class="seguir-label">Sigue donde te quedaste</p>
-          <h2>{enCurso.curso.titulo}</h2>
-          <div class="barra-prog"><span style={`width:${enCurso.pct}%`}></span></div>
-          <p class="seguir-meta">{enCurso.hechas} de {enCurso.total} lecciones</p>
-          <a class="btn btn-primary" href={`/mi-aprendizaje/leccion/${enCurso.siguienteId}/`}>
-            Continuar →
-          </a>
-        </section>
-      )}
-
-      <h1 class="titulo-lista">Tus cursos</h1>
-      <div class="grid">
-        {resumen.map((r) => (
-          <a class="tarjeta" href={`/mi-aprendizaje/curso/${r.curso.id}/`}>
-            <div class="tarjeta-top">
-              <h3>{r.curso.titulo}</h3>
-              <span class="pct">{r.pct}%</span>
-            </div>
-            <p class="resumen">{r.curso.resumen}</p>
-            <div class="barra-prog"><span style={`width:${r.pct}%`}></span></div>
-            <p class="meta">
-              {r.total === 0
-                ? 'El profesor todavía está preparando las lecciones'
-                : `${r.hechas} de ${r.total} lecciones`}
-            </p>
-          </a>
+      <div class="stats">
+        {DATOS.map((d) => (
+          <article class="stat" style={`--c:${d.color}`}>
+            <span class="stat-icono" aria-hidden="true">{d.icono}</span>
+            <p class="stat-valor">{d.valor}</p>
+            <p class="stat-etiqueta">{d.etiqueta}</p>
+          </article>
         ))}
+      </div>
+
+      <div class="columnas">
+        <div class="col">
+          {continuar?.siguienteId && (
+            <section class="seguir">
+              <p class="seguir-label">Sigue donde te quedaste</p>
+              <h2>{continuar.curso.titulo}</h2>
+              <div class="barra"><span style={`width:${continuar.pct}%`}></span></div>
+              <p class="seguir-meta">{continuar.completas} de {continuar.total} lecciones · {continuar.pct}%</p>
+              <a class="btn btn-sun" href={`/mi-aprendizaje/leccion/${continuar.siguienteId}/`}>Continuar →</a>
+            </section>
+          )}
+
+          <section class="panel">
+            <header class="panel-head">
+              <h2>Mis cursos</h2>
+              <a class="panel-link" href="/mi-aprendizaje/cursos/">Ver todos →</a>
+            </header>
+
+            <div class="tabla-envoltura">
+              <table class="tabla">
+                <thead>
+                  <tr><th>Curso</th><th>Progreso</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  {detalle.map((d) => (
+                    <tr>
+                      <td>
+                        <a class="t-titulo" href={`/mi-aprendizaje/curso/${d.curso.id}/`}>{d.curso.titulo}</a>
+                        <span class="t-sub">{d.total} {d.total === 1 ? 'lección' : 'lecciones'}</span>
+                      </td>
+                      <td>
+                        <div class="barra barra-t"><span style={`width:${d.pct}%`}></span></div>
+                        <span class="t-pct">{d.pct}%</span>
+                      </td>
+                      <td>
+                        <span class:list={['pill', `pill-${d.estado}`]}>{ETIQUETA[d.estado]}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="col">
+          <section class="panel">
+            <header class="panel-head">
+              <h2>Avisos</h2>
+              <a class="panel-link" href="/mi-aprendizaje/avisos/">Ver todos →</a>
+            </header>
+
+            {recientes.length === 0 ? (
+              <p class="nada">Tus profesores no han publicado avisos todavía.</p>
+            ) : (
+              <ul class="avisos">
+                {recientes.map((a) => (
+                  <li class:list={['aviso', !a.leido && 'nuevo', a.importante && 'importante']}>
+                    <div class="aviso-top">
+                      <span class="aviso-titulo">{a.titulo}</span>
+                      {!a.leido && <span class="punto-nuevo" aria-label="Sin leer"></span>}
+                    </div>
+                    <p class="aviso-cuerpo">{a.cuerpo}</p>
+                    <p class="aviso-fecha">{fechaCorta(a.createdAt)}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     </>
   )}
@@ -115,49 +136,76 @@ const enCurso = resumen.find((r) => r.siguienteId && r.hechas > 0)
   .saludo { font-family: var(--font-display); font-weight: 800; font-size: var(--text-2xl); margin: 0 0 1.5rem; }
 
   .vacio {
-    text-align: center; padding: 3rem 1.5rem;
-    background: var(--color-raised); border: 2px dashed var(--color-border-strong);
-    border-radius: var(--radius-xl);
+    text-align: center; padding: 3rem 1.5rem; background: var(--color-raised);
+    border: 2px dashed var(--color-border-strong); border-radius: var(--radius-xl);
   }
   .vacio-emoji { font-size: 3rem; }
-  .vacio h1 { font-size: var(--text-xl); margin: 0.75rem 0 0.5rem; }
+  .vacio h2 { font-size: var(--text-xl); margin: 0.75rem 0 0.5rem; }
   .vacio p { color: var(--color-ink-soft); max-width: 44ch; margin: 0 auto 1.75rem; }
   .vacio-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media (min-width: 1000px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+  .stat {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-top: 4px solid var(--c); border-radius: var(--radius-lg); padding: 1.25rem;
+  }
+  .stat-icono { font-size: 1.375rem; }
+  .stat-valor { font-family: var(--font-display); font-weight: 800; font-size: 2.25rem; line-height: 1; margin: 0.5rem 0 0.125rem; color: var(--c); }
+  .stat-etiqueta { font-size: var(--text-sm); color: var(--color-ink-soft); margin: 0; font-weight: 600; }
+
+  .columnas { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+  @media (min-width: 1100px) { .columnas { grid-template-columns: 1.5fr 1fr; } }
+  .col { display: grid; gap: 1.25rem; }
+
   .seguir {
     background: linear-gradient(150deg, var(--color-deep), var(--color-deep-2));
-    color: #fff; border-radius: var(--radius-xl);
-    padding: 1.75rem; margin-bottom: 2.5rem;
+    color: #fff; border-radius: var(--radius-lg); padding: 1.75rem;
   }
-  .seguir-label {
-    font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em;
-    font-weight: 800; color: var(--color-sun); margin: 0 0 0.5rem;
-  }
+  .seguir-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; color: var(--color-sun); margin: 0 0 0.5rem; }
   .seguir h2 { color: #fff; font-size: var(--text-xl); margin: 0 0 1rem; }
-  .seguir .barra-prog { background: rgb(255 255 255 / 0.2); }
-  .seguir .barra-prog span { background: var(--color-sun); }
+  .seguir .barra { background: rgb(255 255 255 / 0.2); }
+  .seguir .barra span { background: var(--color-sun); }
   .seguir-meta { color: #cfc9ea; font-size: var(--text-sm); margin: 0.5rem 0 1.25rem; }
 
-  .titulo-lista { font-size: var(--text-xl); margin: 0 0 1rem; }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-  @media (min-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0; }
+  .panel-link { font-size: var(--text-sm); color: var(--color-primary); font-weight: 700; text-decoration: none; }
 
-  .tarjeta {
-    background: var(--color-raised); border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg); padding: 1.5rem;
-    text-decoration: none; color: inherit;
-    transition: transform 0.15s ease, border-color 0.15s ease;
-  }
-  .tarjeta:hover { transform: translateY(-3px); border-color: var(--color-primary); }
-  .tarjeta-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
-  .tarjeta h3 { font-size: var(--text-lg); margin: 0 0 0.375rem; }
-  .pct { font-family: var(--font-display); font-weight: 800; color: var(--color-accent); font-size: var(--text-sm); }
-  .resumen { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1rem; }
-  .meta { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.5rem 0 0; }
+  .barra { height: 8px; border-radius: var(--radius-pill); background: var(--color-sunken); overflow: hidden; }
+  .barra span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); }
 
-  .barra-prog {
-    height: 8px; border-radius: var(--radius-pill);
-    background: var(--color-sunken); overflow: hidden;
+  /* Wide content scrolls in its own container so the page never scrolls sideways. */
+  .tabla-envoltura { overflow-x: auto; }
+  .tabla { width: 100%; border-collapse: collapse; min-width: 26rem; }
+  .tabla th {
+    text-align: left; font-family: var(--font-display); font-size: var(--text-xs);
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-ink-faint);
+    padding: 0 0.5rem 0.625rem 0; border-bottom: 1px solid var(--color-border);
   }
-  .barra-prog span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); }
+  .tabla td { padding: 0.875rem 0.5rem 0.875rem 0; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+  .tabla tr:last-child td { border-bottom: none; }
+  .t-titulo { display: block; font-weight: 700; color: var(--color-ink); text-decoration: none; font-size: var(--text-sm); }
+  .t-titulo:hover { color: var(--color-primary); }
+  .t-sub { font-size: var(--text-xs); color: var(--color-ink-faint); }
+  .barra-t { width: 6rem; display: inline-block; vertical-align: middle; }
+  .t-pct { font-size: var(--text-xs); color: var(--color-ink-faint); margin-left: 0.5rem; font-variant-numeric: tabular-nums; }
+
+  .pill { font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display); padding: 0.25rem 0.625rem; border-radius: var(--radius-pill); white-space: nowrap; }
+  .pill-completado { background: var(--color-accent-soft); color: var(--color-accent); }
+  .pill-en-curso { background: var(--color-primary-soft); color: var(--color-primary); }
+  .pill-sin-empezar { background: var(--color-sunken); color: var(--color-ink-faint); }
+  .pill-preparandose { background: var(--color-sun-soft); color: #7a5200; }
+
+  .nada { color: var(--color-ink-faint); font-size: var(--text-sm); font-style: italic; margin: 0; }
+  .avisos { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+  .aviso { padding: 0.875rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+  .aviso.nuevo { border-color: var(--color-primary); background: var(--color-primary-soft); }
+  .aviso.importante { border-left: 4px solid var(--color-primary); }
+  .aviso-top { display: flex; align-items: center; gap: 0.5rem; }
+  .aviso-titulo { font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm); flex: 1; }
+  .punto-nuevo { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-pill); background: var(--color-primary); flex: none; }
+  .aviso-cuerpo { font-size: var(--text-sm); color: var(--color-ink-soft); margin: 0.25rem 0 0; white-space: pre-wrap; }
+  .aviso-fecha { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.5rem 0 0; }
 </style>

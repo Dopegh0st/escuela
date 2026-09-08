@@ -2,6 +2,7 @@
 import Aprendizaje from '../../../layouts/Aprendizaje.astro';
 import { getDb, schema } from '../../../lib/db';
 import { cursoMatriculado, matriculaDe } from '../../../lib/scope';
+import { avisosParaAlumno } from '../../../lib/scope';
 import { eq, inArray } from 'drizzle-orm';
 
 export const prerender = false;
@@ -43,9 +44,11 @@ const completas = visibles.filter((l) => hechas.has(l.id)).length;
 const pct = total ? Math.round((completas / total) * 100) : 0;
 const siguiente = visibles.find((l) => !hechas.has(l.id));
 const soloPreview = !matricula;
+
+const sinLeer = (await avisosParaAlumno(db, actor)).filter((a) => !a.leido).length;
 ---
 
-<Aprendizaje title={curso.titulo} volverA="/mi-aprendizaje/" volverTexto="Mis cursos">
+<Aprendizaje seccion="cursos" sinLeer={sinLeer} title={curso.titulo} volverA="/mi-aprendizaje/" volverTexto="Mis cursos">
   {soloPreview && (
     <p class="preview">Estás viendo tu propio curso como lo ve un estudiante. Tu progreso no se guarda.</p>
   )}

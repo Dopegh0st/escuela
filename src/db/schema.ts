@@ -390,7 +390,51 @@ export const auditLog = sqliteTable('audit_log', {
   index('idx_audit_actor').on(t.actorUserId),
 ]);
 
+/* ========================================================================== */
+/* Announcements                                                               */
+/* ========================================================================== */
+
+/**
+ * A message from a teacher to the students of one course, or to everyone when
+ * cursoId is null.
+ *
+ * Deliberately one-way and low-stakes: this is "la clase del jueves se mueve a
+ * las 7", not a chat. A two-way channel between an adult and a child needs the
+ * safeguarding controls the plan set does not have yet, so it is out of scope
+ * until those exist -- WhatsApp remains the place parents talk to teachers.
+ */
+export const aviso = sqliteTable('aviso', {
+  id: text('id').primaryKey(),
+  /** Null = whole school. Otherwise scoped to one course's enrolled students. */
+  cursoId: text('curso_id').references(() => curso.id, { onDelete: 'cascade' }),
+  autorUserId: text('autor_user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  titulo: text('titulo').notNull(),
+  cuerpo: text('cuerpo').notNull(),
+  /** Pins it and marks it visually. For "la clase de mañana se cancela". */
+  importante: integer('importante', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull().default(now),
+}, (t) => [
+  index('idx_aviso_curso').on(t.cursoId),
+  index('idx_aviso_fecha').on(t.createdAt),
+]);
+
+/**
+ * Read receipts. A row exists only once someone has read the notice, so
+ * "unread" is the absence of a row -- no backfill needed when a notice is
+ * created, which matters because a course could have many students.
+ */
+export const avisoLeido = sqliteTable('aviso_leido', {
+  id: text('id').primaryKey(),
+  avisoId: text('aviso_id').notNull().references(() => aviso.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  leidoAt: integer('leido_at').notNull().default(now),
+}, (t) => [
+  uniqueIndex('uq_aviso_usuario').on(t.avisoId, t.userId),
+  index('idx_leido_usuario').on(t.userId),
+]);
+
 export type Usuario = typeof user.$inferSelect;
 export type Curso = typeof curso.$inferSelect;
 export type Matricula = typeof matricula.$inferSelect;
 export type Orden = typeof orden.$inferSelect;
+export type Aviso = typeof aviso.$inferSelect;

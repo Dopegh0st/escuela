@@ -1,0 +1,103 @@
+---
+import Aprendizaje from '../../../layouts/Aprendizaje.astro';
+import { getDb } from '../../../lib/db';
+import { resumenAlumno } from '../../../lib/progreso';
+
+export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const db = getDb();
+const { detalle, sinLeer } = await resumenAlumno(db, actor);
+
+const ETIQUETA: Record<string, string> = {
+  'completado': 'Completado',
+  'en-curso': 'En progreso',
+  'sin-empezar': 'Sin empezar',
+  'preparandose': 'Preparándose',
+};
+
+const enMarcha = detalle.filter((d) => d.estado !== 'completado');
+const terminados = detalle.filter((d) => d.estado === 'completado');
+---
+
+<Aprendizaje title="Mis cursos" seccion="cursos" sinLeer={sinLeer}>
+  {detalle.length === 0 ? (
+    <p class="nada">Todavía no estás inscrito en ningún curso.</p>
+  ) : (
+    <>
+      {enMarcha.length > 0 && (
+        <section class="bloque">
+          <h2>En marcha</h2>
+          <div class="grid">
+            {enMarcha.map((d) => (
+              <a class="tarjeta" href={`/mi-aprendizaje/curso/${d.curso.id}/`}>
+                <div class="top">
+                  <span class:list={['pill', `pill-${d.estado}`]}>{ETIQUETA[d.estado]}</span>
+                  <span class="pct">{d.pct}%</span>
+                </div>
+                <h3>{d.curso.titulo}</h3>
+                <p class="resumen">{d.curso.resumen}</p>
+                <div class="barra"><span style={`width:${d.pct}%`}></span></div>
+                <p class="meta">
+                  {d.total === 0
+                    ? 'Tu profesor está preparando las lecciones'
+                    : `${d.completas} de ${d.total} lecciones`}
+                </p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {terminados.length > 0 && (
+        <section class="bloque">
+          <h2>Terminados 🎉</h2>
+          <div class="grid">
+            {terminados.map((d) => (
+              <a class="tarjeta hecha" href={`/mi-aprendizaje/curso/${d.curso.id}/`}>
+                <div class="top">
+                  <span class="pill pill-completado">Completado</span>
+                  <span class="pct">100%</span>
+                </div>
+                <h3>{d.curso.titulo}</h3>
+                <p class="meta">
+                  Terminaste las {d.total} lecciones. Puedes repasarlo cuando quieras.
+                </p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  )}
+</Aprendizaje>
+
+<style>
+  .nada { color: var(--color-ink-faint); font-style: italic; }
+  .bloque { margin-bottom: 2.5rem; }
+  .bloque h2 { font-size: var(--text-xl); margin: 0 0 1rem; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .tarjeta {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.5rem;
+    text-decoration: none; color: inherit;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .tarjeta:hover { transform: translateY(-3px); border-color: var(--color-primary); }
+  .tarjeta.hecha { background: var(--color-sunken); }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .pct { font-family: var(--font-display); font-weight: 800; color: var(--color-accent); font-size: var(--text-sm); }
+  .tarjeta h3 { font-size: var(--text-lg); margin: 0 0 0.375rem; }
+  .resumen { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1rem; }
+  .meta { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.5rem 0 0; }
+  .barra { height: 8px; border-radius: var(--radius-pill); background: var(--color-sunken); overflow: hidden; }
+  .barra span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); }
+  .pill { font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display); padding: 0.25rem 0.625rem; border-radius: var(--radius-pill); }
+  .pill-completado { background: var(--color-accent-soft); color: var(--color-accent); }
+  .pill-en-curso { background: var(--color-primary-soft); color: var(--color-primary); }
+  .pill-sin-empezar { background: var(--color-sunken); color: var(--color-ink-faint); }
+  .pill-preparandose { background: var(--color-sun-soft); color: #7a5200; }
+</style>

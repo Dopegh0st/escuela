@@ -2,6 +2,7 @@
 import Aprendizaje from '../../../layouts/Aprendizaje.astro';
 import { getDb, schema } from '../../../lib/db';
 import { leccionAccesible, matriculaDe } from '../../../lib/scope';
+import { avisosParaAlumno } from '../../../lib/scope';
 import { eq, inArray, and } from 'drizzle-orm';
 
 export const prerender = false;
@@ -65,13 +66,17 @@ function incrustable(url: string): string | null {
     return null;
   } catch { return null; }
 }
+
+const sinLeer = (await avisosParaAlumno(db, actor)).filter((a) => !a.leido).length;
 ---
 
 <Aprendizaje
+  seccion="cursos"
+  sinLeer={sinLeer}
   title={leccion.titulo}
   volverA={`/mi-aprendizaje/curso/${curso.id}/`}
   volverTexto={curso.titulo}
-  ancho
+  lectura
 >
   {soloPreview && (
     <p class="preview">Vista previa de tu propia lección. Tu progreso no se guarda.</p>

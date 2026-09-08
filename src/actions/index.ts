@@ -2,7 +2,7 @@ import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro:schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { getDb, cfEnv, schema } from '../lib/db';
-import { cursoPropio, perfilProfesor, registrarAuditoria, leccionAccesible, matriculaDe, type Actor } from '../lib/scope';
+import { cursoPropio, perfilProfesor, registrarAuditoria, leccionAccesible, matriculaDe, avisosParaAlumno, type Actor } from '../lib/scope';
 import { getAuth } from '../lib/auth';
 
 /**
@@ -421,6 +421,80 @@ export const server = {
       }
 
       return { ok: true, guardado: true, completada: input.completada };
+    },
+  }),
+
+  /* ---------------------------------------------------------------- avisos */
+
+  crearAviso: defineAction({
+    accept: 'form',
+    input: z.object({
+      cursoId: z.string().optional(),
+      titulo: z.string().min(3, 'Ponle un título corto.').max(140),
+      cuerpo: z.string().min(3, 'Escribe el aviso.').max(2000),
+      importante: z.coerce.boolean().default(false),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const perfil = await perfilProfesor(db, actor);
+      if (!perfil) noEncontrado();
+
+      // A teacher may only post to a course they own. Empty string from the
+      // form's "all courses" option means school-wide.
+      let cursoId: string | null = null;
+      if (input.cursoId && input.cursoId.trim()) {
+        const curso = await cursoPropio(db, actor, input.cursoId);
+        if (!curso) noEncontrado();
+        cursoId = curso.id;
+      }
+
+      const id = crypto.randomUUID();
+      await db.insert(schema.aviso).values({
+        id, cursoId, autorUserId: actor.userId,
+        titulo: input.titulo, cuerpo: input.cuerpo, importante: input.importante,
+      });
+      await registrarAuditoria(db, actor, 'aviso.crear', 'aviso', id, undefined, { cursoId });
+      return { id };
+    },
+  }),
+
+  borrarAviso: defineAction({
+    accept: 'form',
+    input: z.object({ avisoId: z.string() }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const rows = await db.select().from(schema.aviso)
+        .where(eq(schema.aviso.id, input.avisoId)).limit(1);
+      const av = rows[0];
+      // Only the author may delete it.
+      if (!av || av.autorUserId !== actor.userId) noEncontrado();
+
+      await db.delete(schema.aviso).where(eq(schema.aviso.id, input.avisoId));
+      await registrarAuditoria(db, actor, 'aviso.borrar', 'aviso', input.avisoId,
+        undefined, { titulo: av.titulo });
+      return { ok: true };
+    },
+  }),
+
+  /** Marks notices read. Only ever writes receipts for notices the actor can see. */
+  marcarAvisosLeidos: defineAction({
+    accept: 'json',
+    input: z.object({ avisoIds: z.array(z.string()).max(50) }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      if (input.avisoIds.length === 0) return { ok: true, marcados: 0 };
+
+      const visibles = await avisosParaAlumno(db, actor, 50);
+      const permitidos = new Set(visibles.filter((a) => !a.leido).map((a) => a.id));
+      const aMarcar = input.avisoIds.filter((id) => permitidos.has(id));
+      if (aMarcar.length === 0) return { ok: true, marcados: 0 };
+
+      await db.insert(schema.avisoLeido).values(
+        aMarcar.map((avisoId) => ({
+          id: crypto.randomUUID(), avisoId, userId: actor.userId,
+        })),
+      );
+      return { ok: true, marcados: aMarcar.length };
     },
   }),
 };

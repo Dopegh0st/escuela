@@ -1,0 +1,143 @@
+---
+import Estudio from '../../../layouts/Estudio.astro';
+import { getDb, schema } from '../../../lib/db';
+import { cursosDeProfesor, avisosDeProfesor, perfilProfesor } from '../../../lib/scope';
+import { fechaCorta } from '../../../lib/progreso';
+import { actions } from 'astro:actions';
+import { inArray } from 'drizzle-orm';
+
+export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const db = getDb();
+
+const perfil = await perfilProfesor(db, actor);
+const cursos = await cursosDeProfesor(db, actor);
+const avisos = await avisosDeProfesor(db, actor);
+
+const creado = Astro.getActionResult(actions.crearAviso);
+const borrado = Astro.getActionResult(actions.borrarAviso);
+
+const cursoIds = [...new Set(avisos.map((a) => a.cursoId).filter(Boolean))] as string[];
+const nombres = cursoIds.length
+  ? new Map((await db.select().from(schema.curso).where(inArray(schema.curso.id, cursoIds)))
+      .map((c) => [c.id, c.titulo]))
+  : new Map<string, string>();
+
+function mensajeError(err: unknown): string | null {
+  if (!err) return null;
+  const e = err as { fields?: Record<string, string[] | undefined>; message?: string };
+  if (e.fields) for (const m of Object.values(e.fields)) if (m?.length) return m[0];
+  const m = e.message ?? '';
+  return m.startsWith('Failed to validate') ? 'Revisa los datos e intenta de nuevo.' : m || 'No se pudo publicar.';
+}
+const errorCrear = mensajeError(creado?.error);
+---
+
+<Estudio title="Avisos" seccion="avisos">
+  <div class="cols">
+    <section class="panel">
+      <h2>Publicar un aviso</h2>
+      <p class="sub">
+        Lo ven tus estudiantes al entrar. Para cosas puntuales: un cambio de horario,
+        una tarea, un recordatorio.
+      </p>
+
+      {errorCrear && <p class="msg malo">{errorCrear}</p>}
+      {creado && !creado.error && <p class="msg bien">Aviso publicado.</p>}
+      {borrado && !borrado.error && <p class="msg bien">Aviso borrado.</p>}
+
+      {cursos.length === 0 && (
+        <p class="msg aviso-vacio">Primero crea un curso; los avisos se envían a sus estudiantes.</p>
+      )}
+
+      <form method="POST" action={actions.crearAviso}>
+        <label for="cursoId">¿Para quién?</label>
+        <select id="cursoId" name="cursoId">
+          <option value="">Todos mis estudiantes</option>
+          {cursos.map((c) => <option value={c.id}>{c.titulo}</option>)}
+        </select>
+
+        <label for="titulo">Título</label>
+        <input id="titulo" name="titulo" required minlength="3" maxlength="140"
+               placeholder="Ej: La clase del jueves se mueve a las 7" />
+
+        <label for="cuerpo">Mensaje</label>
+        <textarea id="cuerpo" name="cuerpo" rows="5" required minlength="3" maxlength="2000"
+                  placeholder="Escríbelo como se lo dirías por WhatsApp."></textarea>
+
+        <label class="check">
+          <input type="checkbox" name="importante" value="true" />
+          <span>Marcar como importante</span>
+        </label>
+
+        <button class="btn btn-primary ancho" type="submit" disabled={cursos.length === 0 && !perfil}>
+          Publicar aviso
+        </button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Publicados</h2>
+      {avisos.length === 0 ? (
+        <p class="nada">Todavía no has publicado ningún aviso.</p>
+      ) : (
+        <ul class="lista">
+          {avisos.map((a) => (
+            <li class:list={['item', a.importante && 'importante']}>
+              <div class="item-head">
+                <span class="ambito">{a.cursoId ? nombres.get(a.cursoId) ?? 'Curso' : 'Todos'}</span>
+                <span class="fecha">{fechaCorta(a.createdAt)}</span>
+                <form method="POST" action={actions.borrarAviso}
+                      onsubmit="return confirm('¿Borrar este aviso? Tus estudiantes dejarán de verlo.')">
+                  <input type="hidden" name="avisoId" value={a.id} />
+                  <button class="borrar" type="submit" aria-label="Borrar aviso">✕</button>
+                </form>
+              </div>
+              <h3>{a.titulo}</h3>
+              <p class="cuerpo">{a.cuerpo}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>
+</Estudio>
+
+<style>
+  .cols { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; max-width: 58rem; }
+  @media (min-width: 900px) { .cols { grid-template-columns: 1fr 1fr; } }
+
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.75rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
+  .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.25rem; }
+
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  input, select, textarea {
+    width: 100%; padding: 0.6875rem 0.875rem; font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  textarea { resize: vertical; line-height: 1.55; }
+  input:focus, select:focus, textarea:focus { border-color: var(--color-primary); }
+  .check { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem; font-weight: 600; }
+  .check input { width: auto; margin: 0; }
+  .ancho { width: 100%; }
+
+  .msg { border-radius: var(--radius-md); padding: 0.875rem 1.125rem; font-weight: 600; margin: 0 0 1.25rem; font-size: var(--text-sm); }
+  .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
+  .msg.malo { background: #fdecec; color: var(--color-danger); }
+  .aviso-vacio { background: var(--color-sun-soft); color: #7a5200; }
+
+  .nada { color: var(--color-ink-faint); font-style: italic; font-size: var(--text-sm); margin: 0; }
+  .lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.875rem; }
+  .item { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.125rem; background: var(--color-surface); }
+  .item.importante { border-left: 4px solid var(--color-primary); }
+  .item-head { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.375rem; }
+  .ambito { font-size: var(--text-xs); color: var(--color-accent); font-weight: 700; flex: 1; }
+  .fecha { font-size: var(--text-xs); color: var(--color-ink-faint); }
+  .borrar { background: none; border: none; cursor: pointer; color: var(--color-ink-faint); font-size: var(--text-sm); }
+  .borrar:hover { color: var(--color-danger); }
+  .item h3 { font-size: var(--text-base); margin: 0 0 0.25rem; }
+  .cuerpo { font-size: var(--text-sm); color: var(--color-ink-soft); margin: 0; white-space: pre-wrap; }
+</style>

@@ -1,4 +1,4 @@
-import { and, eq, isNull, isNotNull, desc } from 'drizzle-orm';
+import { and, eq, or, inArray, isNull, isNotNull, desc } from 'drizzle-orm';
 import type { Db } from './db';
 import { schema } from './db';
 import { esAdmin, esProfesor } from './auth';
@@ -242,4 +242,45 @@ export async function matriculaDe(db: Db, actor: Actor, cursoId: string) {
     eq(schema.matricula.cursoId, cursoId),
   )).limit(1);
   return rows[0] ?? null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Announcements                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Notices this actor may see: school-wide ones plus those for courses they are
+ * actively enrolled in. Scoped from the enrolment list, never from a course id
+ * supplied by the client.
+ */
+export async function avisosParaAlumno(db: Db, actor: Actor, limite = 20) {
+  const matriculas = await matriculasPropias(db, actor);
+  const cursoIds = matriculas.map((m) => m.cursoId);
+
+  const filtro = cursoIds.length
+    ? or(isNull(schema.aviso.cursoId), inArray(schema.aviso.cursoId, cursoIds))
+    : isNull(schema.aviso.cursoId);
+
+  const avisos = await db.select().from(schema.aviso)
+    .where(filtro).orderBy(desc(schema.aviso.createdAt)).limit(limite);
+  if (avisos.length === 0) return [];
+
+  // Unread = no receipt row, so nothing has to be written when a notice is
+  // created. Matters once a course has many students.
+  const leidos = await db.select({ avisoId: schema.avisoLeido.avisoId })
+    .from(schema.avisoLeido)
+    .where(and(
+      eq(schema.avisoLeido.userId, actor.userId),
+      inArray(schema.avisoLeido.avisoId, avisos.map((a) => a.id)),
+    ));
+  const vistos = new Set(leidos.map((l) => l.avisoId));
+
+  return avisos.map((a) => ({ ...a, leido: vistos.has(a.id) }));
+}
+
+/** Notices written by this teacher, for their own management view. */
+export async function avisosDeProfesor(db: Db, actor: Actor, limite = 30) {
+  return db.select().from(schema.aviso)
+    .where(eq(schema.aviso.autorUserId, actor.userId))
+    .orderBy(desc(schema.aviso.createdAt)).limit(limite);
 }

@@ -1,0 +1,118 @@
+---
+import Aprendizaje from '../../../layouts/Aprendizaje.astro';
+import { getDb, schema } from '../../../lib/db';
+import { avisosParaAlumno } from '../../../lib/scope';
+import { fechaCorta } from '../../../lib/progreso';
+import { inArray } from 'drizzle-orm';
+
+export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const db = getDb();
+
+const avisos = await avisosParaAlumno(db, actor, 50);
+const sinLeer = avisos.filter((a) => !a.leido).length;
+
+const cursoIds = [...new Set(avisos.map((a) => a.cursoId).filter(Boolean))] as string[];
+const cursos = cursoIds.length
+  ? await db.select().from(schema.curso).where(inArray(schema.curso.id, cursoIds))
+  : [];
+const nombreCurso = new Map(cursos.map((c) => [c.id, c.titulo]));
+
+const autorIds = [...new Set(avisos.map((a) => a.autorUserId))];
+const autores = autorIds.length
+  ? await db.select().from(schema.user).where(inArray(schema.user.id, autorIds))
+  : [];
+const nombreAutor = new Map(autores.map((u) => [u.id, u.name]));
+---
+
+<Aprendizaje title="Avisos" seccion="avisos" sinLeer={sinLeer}>
+  <div class="cabecera">
+    <p class="sub">
+      {sinLeer > 0
+        ? `Tienes ${sinLeer} ${sinLeer === 1 ? 'aviso nuevo' : 'avisos nuevos'}.`
+        : 'Estás al día.'}
+    </p>
+    {sinLeer > 0 && (
+      <button type="button" id="marcar-todos" class="btn btn-secondary chico">
+        Marcar todo como leído
+      </button>
+    )}
+  </div>
+
+  {avisos.length === 0 ? (
+    <div class="vacio">
+      <span aria-hidden="true">🔔</span>
+      <p><strong>No hay avisos todavía.</strong></p>
+      <p>Cuando tu profesor publique algo sobre el curso, aparece aquí.</p>
+    </div>
+  ) : (
+    <ul class="lista" id="lista">
+      {avisos.map((a) => (
+        <li class:list={['aviso', !a.leido && 'nuevo', a.importante && 'importante']} data-aviso={a.id}>
+          <div class="aviso-head">
+            {a.importante && <span class="etiqueta">Importante</span>}
+            <span class="ambito">
+              {a.cursoId ? nombreCurso.get(a.cursoId) ?? 'Curso' : 'Toda la escuela'}
+            </span>
+            <span class="fecha">{fechaCorta(a.createdAt)}</span>
+            {!a.leido && <span class="punto" aria-label="Sin leer"></span>}
+          </div>
+          <h2>{a.titulo}</h2>
+          <p class="cuerpo">{a.cuerpo}</p>
+          <p class="autor">De {nombreAutor.get(a.autorUserId) ?? 'tu profesor'}</p>
+        </li>
+      ))}
+    </ul>
+  )}
+</Aprendizaje>
+
+<script>
+  import { actions } from 'astro:actions';
+
+  const btn = document.getElementById('marcar-todos');
+  btn?.addEventListener('click', async () => {
+    const nuevos = [...document.querySelectorAll('.aviso.nuevo')]
+      .map((el) => (el as HTMLElement).dataset.aviso!)
+      .filter(Boolean);
+    if (!nuevos.length) return;
+
+    btn.setAttribute('disabled', 'true');
+    const { error } = await actions.marcarAvisosLeidos({ avisoIds: nuevos });
+    if (!error) location.reload();
+    else btn.removeAttribute('disabled');
+  });
+</script>
+
+<style>
+  .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .sub { color: var(--color-ink-soft); margin: 0; }
+  .chico { min-height: 38px; padding: 0.5rem 1rem; font-size: var(--text-sm); }
+
+  .vacio {
+    text-align: center; padding: 3rem 1.5rem; background: var(--color-raised);
+    border: 2px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+  }
+  .vacio span { font-size: 2.5rem; }
+  .vacio p { margin: 0.5rem 0 0; color: var(--color-ink-soft); }
+
+  .lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; max-width: 46rem; }
+  .aviso {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+  }
+  .aviso.nuevo { border-color: var(--color-primary); }
+  .aviso.importante { border-left: 5px solid var(--color-primary); }
+  .aviso-head { display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .etiqueta {
+    font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display);
+    background: var(--color-primary); color: #fff;
+    padding: 0.1875rem 0.5rem; border-radius: var(--radius-pill);
+  }
+  .ambito { font-size: var(--text-xs); color: var(--color-accent); font-weight: 700; }
+  .fecha { font-size: var(--text-xs); color: var(--color-ink-faint); }
+  .punto { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-pill); background: var(--color-primary); }
+  .aviso h2 { font-size: var(--text-lg); margin: 0 0 0.375rem; }
+  .cuerpo { color: var(--color-ink-soft); margin: 0; white-space: pre-wrap; }
+  .autor { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.75rem 0 0; }
+</style>
