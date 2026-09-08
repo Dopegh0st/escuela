@@ -1,17 +1,39 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import CtaFinal from '../../components/CtaFinal.astro';
 import { SITE } from '../../config';
+import { getDb } from '../../lib/db';
+import { articuloPublicado, otrosArticulos } from '../../lib/blog';
+import { renderArticulo } from '../../lib/markdown';
 
-export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => data.publicado);
-  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
-}
+export const prerender = false;
 
-const { post } = Astro.props;
-const d = post.data;
-const { Content } = await render(post);
+const db = getDb();
+// Only published articles resolve here: a draft slug 404s exactly like an
+// invented one, so nothing under review is reachable by guessing the URL.
+const art = await articuloPublicado(db, Astro.params.slug!);
+if (!art) return new Response('No encontramos ese artículo.', { status: 404 });
+
+// Short on purpose. The edge cache spares D1 on a page that is read far more
+// than it changes, but a teacher who just published needs to SEE it published;
+// ten minutes of staleness reads as "it didn't work" and they publish again.
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=120, stale-while-revalidate=600',
+);
+
+const post = { id: art.slug };
+const d = {
+  titulo: art.titulo, resumen: art.resumen, autor: art.autorNombre,
+  categoria: art.categoria, minutosLectura: art.minutosLectura,
+  color: art.color, emoji: art.emoji,
+  fecha: new Date((art.publicadoAt ?? art.createdAt) * 1000),
+  actualizado: new Date(art.updatedAt * 1000),
+};
+// The body is written by a teacher, so it goes through the renderer that
+// escapes raw HTML and rejects unsafe link schemes before it becomes a page.
+const cuerpoHtml = renderArticulo(art.cuerpo);
 
 const CAT_LABEL: Record<string, string> = {
   ingles: 'Inglés',
@@ -26,10 +48,14 @@ const fmt = (x: Date) =>
 
 const autor = (await getCollection('profesores')).find((p) => p.data.nombre === d.autor);
 
-const otros = (await getCollection('blog', ({ data }) => data.publicado))
-  .filter((p) => p.id !== post.id)
-  .sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf())
-  .slice(0, 3);
+const otros = (await otrosArticulos(db, art.id, 3)).map((o) => ({
+  id: o.slug,
+  data: {
+    titulo: o.titulo, resumen: o.resumen, categoria: o.categoria,
+    color: o.color, emoji: o.emoji, minutosLectura: o.minutosLectura,
+    fecha: new Date((o.publicadoAt ?? o.createdAt) * 1000),
+  },
+}));
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -71,7 +97,7 @@ const jsonLd = {
 
     <div class="container-page cuerpo">
       <div class="prosa">
-        <Content />
+        <div set:html={cuerpoHtml} />
       </div>
 
       {autor && (

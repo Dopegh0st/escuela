@@ -1,0 +1,293 @@
+---
+import Estudio from '../../../layouts/Estudio.astro';
+import { getDb } from '../../../lib/db';
+import { articuloPropio, nombresDeUsuarios, CATEGORIAS, ETIQUETA_CATEGORIA } from '../../../lib/blog';
+import { renderArticulo } from '../../../lib/markdown';
+import { fechaCorta } from '../../../lib/progreso';
+import { actions } from 'astro:actions';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const actor = Astro.locals.actor!;
+const db = getDb();
+const esAdministrador = actor.roles.split(',').includes('admin');
+
+const art = await articuloPropio(db, actor, id!);
+if (!art) return new Response('No encontramos ese artículo.', { status: 404 });
+
+const guardado = Astro.getActionResult(actions.guardarArticulo);
+const enviado = Astro.getActionResult(actions.enviarARevision);
+const publicado = Astro.getActionResult(actions.publicarArticulo);
+const devuelto = Astro.getActionResult(actions.devolverArticulo);
+
+function mensajeError(err: unknown): string | null {
+  if (!err) return null;
+  const e = err as { fields?: Record<string, string[] | undefined>; message?: string };
+  if (e.fields) for (const m of Object.values(e.fields)) if (m?.length) return m[0];
+  const m = e.message ?? '';
+  return m.startsWith('Failed to validate') ? 'Revisa los datos e intenta de nuevo.' : m || 'No se pudo guardar.';
+}
+
+// The preview goes through the SAME renderer the public page uses, so what the
+// teacher approves is exactly what a reader gets.
+const vistaPrevia = renderArticulo(art.cuerpo || '_Todavía no has escrito nada._');
+const revisores = await nombresDeUsuarios(db, [art.revisadoPor]);
+
+const ETIQUETA_ESTADO: Record<string, string> = {
+  borrador: 'Borrador', revision: 'En revisión', publicado: 'Publicado',
+};
+const bloqueado = art.estado === 'revision' && !esAdministrador;
+---
+
+<Estudio
+  title={art.titulo}
+  seccion="blog"
+  volverA="/estudio/blog/"
+  volverTexto="Blog"
+>
+  <header class="cabecera">
+    <span class:list={['pill', `pill-${art.estado}`]}>{ETIQUETA_ESTADO[art.estado]}</span>
+    <span class="meta">
+      {art.autorNombre} · {ETIQUETA_CATEGORIA[art.categoria] ?? art.categoria} · {art.minutosLectura} min
+      {art.estado === 'publicado' && art.publicadoAt ? ` · ${fechaCorta(art.publicadoAt)}` : ''}
+    </span>
+    {art.estado === 'publicado' && (
+      <a class="ver" href={`/blog/${art.slug}/`} target="_blank" rel="noopener">Ver en el sitio ↗</a>
+    )}
+  </header>
+
+  {mensajeError(guardado?.error) && <p class="msg malo">{mensajeError(guardado?.error)}</p>}
+  {mensajeError(enviado?.error) && <p class="msg malo">{mensajeError(enviado?.error)}</p>}
+  {guardado && !guardado.error && <p class="msg bien">Guardado.</p>}
+  {enviado && !enviado.error && <p class="msg bien">Mandado a revisión. Te avisamos cuando lo revisen.</p>}
+  {publicado && !publicado.error && <p class="msg bien">Publicado. Ya está en el sitio.</p>}
+  {devuelto && !devuelto.error && <p class="msg bien">Devuelto al autor.</p>}
+
+  {art.notaRevision && (
+    <div class="devolucion">
+      <strong>Te lo devolvieron para corregir</strong>
+      <p>“{art.notaRevision}”</p>
+      {art.revisadoPor && art.revisadoAt && (
+        <p class="firma">
+          {revisores.get(art.revisadoPor) ?? 'Un administrador'} · {fechaCorta(art.revisadoAt)}
+        </p>
+      )}
+    </div>
+  )}
+
+  {bloqueado && (
+    <p class="msg aviso">
+      Está en revisión, así que no se puede editar hasta que alguien lo mire.
+    </p>
+  )}
+
+  <div class="cols">
+    <!-- ==================== Editor ==================== -->
+    <section class="panel">
+      <form method="POST" action={actions.guardarArticulo} id="editor">
+        <input type="hidden" name="articuloId" value={art.id} />
+
+        <label for="titulo">Título</label>
+        <input id="titulo" name="titulo" required minlength="4" maxlength="140"
+               value={art.titulo} disabled={bloqueado} />
+
+        <label for="categoria">Materia</label>
+        <select id="categoria" name="categoria" disabled={bloqueado}>
+          {CATEGORIAS.map((c) => (
+            <option value={c} selected={c === art.categoria}>{ETIQUETA_CATEGORIA[c]}</option>
+          ))}
+        </select>
+
+        <label for="resumen">
+          Resumen <span class="opcional">— lo que se lee en la tarjeta del blog</span>
+        </label>
+        <textarea id="resumen" name="resumen" rows="3" maxlength="200"
+                  disabled={bloqueado}
+                  placeholder="Dos líneas que den ganas de abrirlo. No repitas el título.">{art.resumen}</textarea>
+        <p class="contador"><span id="cuenta-resumen">{art.resumen.length}</span>/200</p>
+
+        <label for="cuerpo">El artículo</label>
+        <textarea id="cuerpo" name="cuerpo" rows="26" maxlength="60000"
+                  disabled={bloqueado}
+                  placeholder={'## Un subtítulo\n\nEscribe normal. Deja una línea en blanco entre párrafos.\n\n- viñeta\n- otra viñeta\n\n**negrita**, *cursiva*, [un enlace](https://ejemplo.com)'}>{art.cuerpo}</textarea>
+        <p class="ayuda">
+          <code>##</code> subtítulo · <code>**negrita**</code> · <code>*cursiva*</code> ·
+          <code>- viñeta</code> · <code>[texto](enlace)</code> · <code>&gt; cita</code>
+        </p>
+
+        <div class="botones">
+          <button class="btn btn-primary" type="submit" disabled={bloqueado}>Guardar</button>
+          <span id="aviso-guardado" class="aviso-inline" hidden></span>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==================== Vista previa y estado ==================== -->
+    <div class="lateral">
+      <section class="panel">
+        <h2>Qué sigue</h2>
+
+        {art.estado === 'borrador' && (
+          <>
+            <p class="sub">
+              Cuando lo tengas listo, mándalo a revisión. Un administrador lo lee y
+              decide si se publica. Nadie lo ve hasta entonces.
+            </p>
+            <form method="POST" action={actions.enviarARevision}>
+              <input type="hidden" name="articuloId" value={art.id} />
+              <button class="btn btn-primary ancho" type="submit">Mandar a revisión</button>
+            </form>
+          </>
+        )}
+
+        {art.estado === 'revision' && !esAdministrador && (
+          <p class="sub">Está esperando revisión. No hay nada más que hacer por ahora.</p>
+        )}
+
+        {art.estado === 'revision' && esAdministrador && (
+          <>
+            <p class="sub">
+              Léelo entero antes de publicar. Si toca apoyo escolar o lenguaje
+              infantil, revisa que no prometa resultados ni use términos clínicos.
+            </p>
+            <form method="POST" action={actions.publicarArticulo} class="bloque"
+                  onsubmit="return confirm('¿Publicar? Queda visible para cualquiera y Google puede indexarlo.')">
+              <input type="hidden" name="articuloId" value={art.id} />
+              <button class="btn btn-primary ancho" type="submit">Publicar</button>
+            </form>
+            <form method="POST" action={actions.devolverArticulo} class="bloque">
+              <input type="hidden" name="articuloId" value={art.id} />
+              <label for="nota">Devolverlo con una nota</label>
+              <textarea id="nota" name="nota" rows="3" required minlength="3" maxlength="1000"
+                        placeholder="Qué tiene que cambiar antes de publicarse."></textarea>
+              <button class="btn btn-secondary ancho" type="submit">Devolver al autor</button>
+            </form>
+          </>
+        )}
+
+        {art.estado === 'publicado' && (
+          <>
+            <p class="sub">
+              Está en el sitio. Si lo editas, los cambios salen apenas guardes: no
+              vuelve a pasar por revisión.
+            </p>
+            {esAdministrador && (
+              <form method="POST" action={actions.devolverArticulo} class="bloque">
+                <input type="hidden" name="articuloId" value={art.id} />
+                <label for="nota">Bajarlo del sitio</label>
+                <textarea id="nota" name="nota" rows="2" required minlength="3" maxlength="1000"
+                          placeholder="Por qué lo bajas."></textarea>
+                <button class="btn btn-secondary ancho" type="submit">Bajar y devolver a borrador</button>
+              </form>
+            )}
+          </>
+        )}
+      </section>
+
+      <section class="panel">
+        <h2>Vista previa</h2>
+        <p class="sub">Así se va a ver. Guarda para actualizarla.</p>
+        <div class="prosa previa" set:html={vistaPrevia} />
+      </section>
+    </div>
+  </div>
+</Estudio>
+
+<script>
+  const resumen = document.getElementById('resumen') as HTMLTextAreaElement | null;
+  const cuenta = document.getElementById('cuenta-resumen');
+  resumen?.addEventListener('input', () => {
+    if (cuenta) cuenta.textContent = String(resumen.value.length);
+  });
+
+  // Warn before losing unsaved work: these are long articles.
+  const form = document.getElementById('editor') as HTMLFormElement | null;
+  let sucio = false;
+  form?.addEventListener('input', () => { sucio = true; });
+  form?.addEventListener('submit', () => { sucio = false; });
+  window.addEventListener('beforeunload', (e) => {
+    if (!sucio) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+</script>
+
+<style>
+  .cabecera { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .meta { font-size: var(--text-sm); color: var(--color-ink-faint); }
+  .ver { font-size: var(--text-sm); color: var(--color-primary); font-weight: 700; text-decoration: none; }
+
+  .pill {
+    font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display);
+    padding: 0.1875rem 0.625rem; border-radius: var(--radius-pill);
+    background: var(--color-sunken); color: var(--color-ink-faint);
+  }
+  .pill-revision { background: var(--color-sun-soft); color: #7a5200; }
+  .pill-publicado { background: var(--color-accent-soft); color: var(--color-accent); }
+
+  .msg { border-radius: var(--radius-md); padding: 0.875rem 1.125rem; font-weight: 600; margin: 0 0 1.25rem; font-size: var(--text-sm); }
+  .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
+  .msg.malo { background: #fdecec; color: var(--color-danger); }
+  .msg.aviso { background: var(--color-sun-soft); color: #7a5200; }
+
+  .devolucion {
+    background: var(--color-sun-soft); border: 2px solid var(--color-sun);
+    border-radius: var(--radius-lg); padding: 1.125rem 1.375rem; margin-bottom: 1.25rem;
+  }
+  .devolucion p { margin: 0.375rem 0 0; color: #7a5200; font-style: italic; }
+  .devolucion .firma { font-size: var(--text-xs); font-style: normal; opacity: 0.8; }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; max-width: 80rem; }
+  .cols > * { min-width: 0; }
+  @media (min-width: 1250px) { .cols { grid-template-columns: minmax(0, 1fr) 24rem; } }
+  .lateral { display: grid; gap: 1.25rem; align-items: start; }
+
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
+  .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.125rem; line-height: 1.55; }
+
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  .opcional { font-weight: 600; color: var(--color-ink-faint); }
+  input, select, textarea {
+    width: 100%; padding: 0.625rem 0.75rem; font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  textarea { resize: vertical; line-height: 1.6; }
+  #cuerpo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9375rem; }
+  input:focus, select:focus, textarea:focus { border-color: var(--color-primary); }
+  input:disabled, select:disabled, textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .contador { font-size: var(--text-xs); color: var(--color-ink-faint); margin: -0.75rem 0 1rem; text-align: right; }
+  .ayuda { font-size: var(--text-xs); color: var(--color-ink-faint); margin: -0.5rem 0 1.25rem; line-height: 1.8; }
+  .ayuda code {
+    background: var(--color-sunken); padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-sm); font-size: 0.75rem;
+  }
+
+  .botones { display: flex; align-items: center; gap: 1rem; }
+  .aviso-inline { font-size: var(--text-sm); font-weight: 700; color: var(--color-accent); }
+  .ancho { width: 100%; }
+  .bloque { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border); }
+  .bloque:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+  .previa {
+    max-height: 30rem; overflow-y: auto;
+    background: var(--color-surface); border-radius: var(--radius-md);
+    padding: 1rem 1.125rem; font-size: var(--text-sm);
+  }
+  .previa :global(h2), .previa :global(h3) { font-size: var(--text-base); margin: 1.25rem 0 0.5rem; }
+  .previa :global(h2:first-child), .previa :global(h3:first-child) { margin-top: 0; }
+  .previa :global(p) { margin: 0 0 0.75rem; line-height: 1.65; }
+  .previa :global(ul), .previa :global(ol) { margin: 0 0 0.75rem; padding-left: 1.25rem; }
+  .previa :global(li) { margin-bottom: 0.25rem; }
+  .previa :global(a) { color: var(--color-primary); }
+  .previa :global(blockquote) {
+    border-left: 3px solid var(--color-border-strong); margin: 0 0 0.75rem;
+    padding-left: 0.875rem; color: var(--color-ink-soft); font-style: italic;
+  }
+  .previa :global(img) { max-width: 100%; border-radius: var(--radius-md); }
+  .previa :global(table) { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; }
+  .previa :global(th), .previa :global(td) { border: 1px solid var(--color-border); padding: 0.375rem 0.5rem; text-align: left; }
+</style>

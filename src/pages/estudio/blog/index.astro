@@ -1,0 +1,266 @@
+---
+import Estudio from '../../../layouts/Estudio.astro';
+import { getDb } from '../../../lib/db';
+import { perfilProfesor } from '../../../lib/scope';
+import {
+  articulosDeAutor, articulosEnRevision, nombresDeUsuarios,
+  CATEGORIAS, ETIQUETA_CATEGORIA,
+} from '../../../lib/blog';
+import { fechaCorta } from '../../../lib/progreso';
+import { actions } from 'astro:actions';
+
+export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const db = getDb();
+const esAdministrador = actor.roles.split(',').includes('admin');
+
+const perfil = await perfilProfesor(db, actor);
+const articulos = await articulosDeAutor(db, actor);
+const pendientes = esAdministrador ? await articulosEnRevision(db) : [];
+const autores = await nombresDeUsuarios(db, pendientes.map((a) => a.autorUserId));
+
+const creado = Astro.getActionResult(actions.crearArticulo);
+const publicado = Astro.getActionResult(actions.publicarArticulo);
+const devuelto = Astro.getActionResult(actions.devolverArticulo);
+const borrado = Astro.getActionResult(actions.borrarArticulo);
+
+if (creado && !creado.error) {
+  return Astro.redirect(`/estudio/blog/${creado.data.id}/`);
+}
+
+function mensajeError(err: unknown): string | null {
+  if (!err) return null;
+  const e = err as { fields?: Record<string, string[] | undefined>; message?: string };
+  if (e.fields) for (const m of Object.values(e.fields)) if (m?.length) return m[0];
+  const m = e.message ?? '';
+  return m.startsWith('Failed to validate') ? 'Revisa los datos e intenta de nuevo.' : m || 'No se pudo hacer.';
+}
+
+const ETIQUETA_ESTADO: Record<string, string> = {
+  borrador: 'Borrador', revision: 'En revisión', publicado: 'Publicado',
+};
+
+const misBorradores = articulos.filter((a) => a.estado !== 'publicado');
+const misPublicados = articulos.filter((a) => a.estado === 'publicado');
+---
+
+<Estudio title="Blog" seccion="blog">
+  {mensajeError(creado?.error) && <p class="msg malo">{mensajeError(creado?.error)}</p>}
+  {mensajeError(devuelto?.error) && <p class="msg malo">{mensajeError(devuelto?.error)}</p>}
+  {publicado && !publicado.error && <p class="msg bien">Artículo publicado. Ya está en el sitio.</p>}
+  {devuelto && !devuelto.error && <p class="msg bien">Devuelto al autor con tu nota.</p>}
+  {borrado && !borrado.error && <p class="msg bien">Artículo borrado.</p>}
+
+  {!perfil && !esAdministrador && (
+    <div class="banner">
+      <strong>Tu perfil de profesor todavía no está activo.</strong>
+      <p>Un administrador tiene que completar tu ficha antes de que puedas escribir.</p>
+    </div>
+  )}
+
+  <!-- ============ Cola de revisión (solo admin) ============ -->
+  {esAdministrador && pendientes.length > 0 && (
+    <section class="revision">
+      <h2>Esperando tu revisión <span class="cuenta">{pendientes.length}</span></h2>
+      <p class="sub">
+        Nada de esto es público todavía. Léelo antes de publicar: un artículo es una
+        página indexable, y lo que toca apoyo escolar tiene reglas de lenguaje.
+      </p>
+      <ul class="lista">
+        {pendientes.map((a) => (
+          <li class="pendiente">
+            <div class="pend-cuerpo">
+              <a class="pend-titulo" href={`/estudio/blog/${a.id}/`}>{a.titulo}</a>
+              <p class="pend-meta">
+                {a.autorNombre}
+                {a.autorUserId && autores.get(a.autorUserId) && a.autorNombre !== autores.get(a.autorUserId)
+                  ? ` (${autores.get(a.autorUserId)})` : ''}
+                {' · '}{ETIQUETA_CATEGORIA[a.categoria] ?? a.categoria}
+                {' · '}{a.minutosLectura} min
+              </p>
+            </div>
+            <div class="pend-acciones">
+              <a class="btn btn-secondary chico" href={`/estudio/blog/${a.id}/`}>Leerlo</a>
+              <form method="POST" action={actions.publicarArticulo}
+                    onsubmit="return confirm('¿Publicar este artículo? Queda visible para cualquiera y Google puede indexarlo.')">
+                <input type="hidden" name="articuloId" value={a.id} />
+                <button class="btn btn-primary chico" type="submit">Publicar</button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <div class="cols">
+    <section class="principal">
+      <h2 class="titulo-seccion">
+        {esAdministrador ? 'Borradores y revisiones' : 'Mis artículos'}
+      </h2>
+
+      {misBorradores.length === 0 ? (
+        <div class="vacio">
+          <span aria-hidden="true">✍️</span>
+          <p><strong>No tienes nada empezado.</strong></p>
+          <p class="vacio-sub">
+            Escribe sobre lo que te preguntan tus estudiantes. Un artículo útil trae
+            gente al sitio durante años, aunque no compre nada ese día.
+          </p>
+        </div>
+      ) : (
+        <ul class="lista">
+          {misBorradores.map((a) => (
+            <li class="fila">
+              <div class="fila-cuerpo">
+                <a class="fila-titulo" href={`/estudio/blog/${a.id}/`}>{a.titulo}</a>
+                <p class="fila-meta">
+                  <span class={`pill pill-${a.estado}`}>{ETIQUETA_ESTADO[a.estado]}</span>
+                  <span>{ETIQUETA_CATEGORIA[a.categoria] ?? a.categoria}</span>
+                  <span>·</span>
+                  <span>{a.minutosLectura} min</span>
+                  {a.notaRevision && <span class="devuelto">· te lo devolvieron</span>}
+                </p>
+                {a.notaRevision && <p class="nota">“{a.notaRevision}”</p>}
+              </div>
+              <a class="btn btn-secondary chico" href={`/estudio/blog/${a.id}/`}>Abrir</a>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {misPublicados.length > 0 && (
+        <>
+          <h2 class="titulo-seccion separado">Publicados</h2>
+          <ul class="lista">
+            {misPublicados.map((a) => (
+              <li class="fila publicada">
+                <div class="fila-cuerpo">
+                  <a class="fila-titulo" href={`/estudio/blog/${a.id}/`}>{a.titulo}</a>
+                  <p class="fila-meta">
+                    <span class="pill pill-publicado">Publicado</span>
+                    {a.publicadoAt && <span>{fechaCorta(a.publicadoAt)}</span>}
+                    <span>·</span>
+                    <a class="ver" href={`/blog/${a.slug}/`} target="_blank" rel="noopener">Ver en el sitio ↗</a>
+                  </p>
+                </div>
+                <a class="btn btn-secondary chico" href={`/estudio/blog/${a.id}/`}>Editar</a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+
+    <!-- ============ Escribir uno nuevo ============ -->
+    <section class="panel">
+      <h2>Escribir un artículo</h2>
+      <p class="sub">
+        Empieza con el título y la materia. Lo demás se escribe adentro, y nadie
+        lo ve hasta que un administrador lo apruebe.
+      </p>
+      <form method="POST" action={actions.crearArticulo}>
+        <label for="titulo">Título</label>
+        <input id="titulo" name="titulo" required minlength="4" maxlength="140"
+               placeholder="Ej: Cómo elegir tu primera guitarra" />
+
+        <label for="categoria">Materia</label>
+        <select id="categoria" name="categoria" required>
+          {CATEGORIAS.map((c) => <option value={c}>{ETIQUETA_CATEGORIA[c]}</option>)}
+        </select>
+
+        <button class="btn btn-primary ancho" type="submit" disabled={!perfil && !esAdministrador}>
+          Empezar a escribir
+        </button>
+      </form>
+    </section>
+  </div>
+</Estudio>
+
+<style>
+  .msg { border-radius: var(--radius-md); padding: 0.875rem 1.125rem; font-weight: 600; margin: 0 0 1.25rem; font-size: var(--text-sm); }
+  .msg.bien { background: var(--color-accent-soft); color: var(--color-accent); }
+  .msg.malo { background: #fdecec; color: var(--color-danger); }
+
+  .banner {
+    background: var(--color-sun-soft); border: 2px solid var(--color-sun);
+    border-radius: var(--radius-lg); padding: 1.125rem 1.375rem; margin-bottom: 1.5rem;
+  }
+  .banner p { margin: 0.25rem 0 0; color: var(--color-ink-soft); font-size: var(--text-sm); }
+
+  .revision {
+    background: var(--color-sun-soft); border: 2px solid var(--color-sun);
+    border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.75rem;
+    max-width: 78rem;
+  }
+  .revision h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .cuenta {
+    background: var(--color-primary); color: #fff; font-size: var(--text-xs);
+    padding: 0.125rem 0.5rem; border-radius: var(--radius-pill); font-family: var(--font-display);
+  }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; max-width: 78rem; }
+  .cols > * { min-width: 0; }
+  @media (min-width: 1250px) { .cols { grid-template-columns: minmax(0, 1fr) 21rem; } }
+
+  .panel { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; }
+  .panel h2 { font-size: var(--text-lg); margin: 0 0 0.25rem; }
+  .sub { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1.25rem; line-height: 1.55; }
+
+  .titulo-seccion { font-size: var(--text-lg); margin: 0 0 1rem; }
+  .separado { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); }
+
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  input, select {
+    width: 100%; padding: 0.625rem 0.75rem; font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  input:focus, select:focus { border-color: var(--color-primary); }
+  .ancho { width: 100%; }
+  .chico { min-height: 36px; padding: 0.4375rem 0.875rem; font-size: var(--text-sm); }
+
+  .vacio {
+    text-align: center; padding: 2.75rem 1.5rem; background: var(--color-raised);
+    border: 2px dashed var(--color-border-strong); border-radius: var(--radius-lg);
+  }
+  .vacio span { font-size: 2.25rem; }
+  .vacio p { margin: 0.5rem 0 0; }
+  .vacio-sub { color: var(--color-ink-soft); font-size: var(--text-sm); max-width: 44ch; margin: 0.5rem auto 0; }
+
+  .lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.625rem; }
+
+  .fila, .pendiente {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 0.875rem 1.125rem;
+  }
+  .pendiente { background: var(--color-surface); }
+  .fila.publicada { border-style: dashed; }
+  .fila-cuerpo, .pend-cuerpo { min-width: 0; flex: 1; }
+  .fila-titulo, .pend-titulo {
+    font-weight: 700; font-size: var(--text-sm); color: inherit; text-decoration: none;
+    display: block; margin-bottom: 0.1875rem;
+  }
+  .fila-titulo:hover, .pend-titulo:hover { color: var(--color-primary); text-decoration: underline; }
+  .fila-meta, .pend-meta {
+    font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0;
+    display: flex; gap: 0.375rem; align-items: center; flex-wrap: wrap;
+  }
+  .ver { color: var(--color-primary); text-decoration: none; font-weight: 700; }
+  .devuelto { color: #b06a00; font-weight: 700; }
+  .nota {
+    font-size: var(--text-xs); color: #7a5200; background: var(--color-sun-soft);
+    border-radius: var(--radius-md); padding: 0.5rem 0.75rem; margin: 0.5rem 0 0; font-style: italic;
+  }
+  .pend-acciones { display: flex; gap: 0.5rem; align-items: center; }
+
+  .pill {
+    font-size: var(--text-xs); font-weight: 800; font-family: var(--font-display);
+    padding: 0.125rem 0.5rem; border-radius: var(--radius-pill);
+    background: var(--color-sunken); color: var(--color-ink-faint);
+  }
+  .pill-revision { background: var(--color-sun-soft); color: #7a5200; }
+  .pill-publicado { background: var(--color-accent-soft); color: var(--color-accent); }
+</style>

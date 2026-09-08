@@ -6,6 +6,8 @@ import { cursoPropio, perfilProfesor, registrarAuditoria, leccionAccesible, matr
 import { getAuth, esAdmin } from '../lib/auth';
 import { aUnixEc, enlaceValido, enlaceYaUsado, sesionPropia, registroDeSesion } from '../lib/agenda';
 import { buscarUsuarioPorEmail, yaMatriculado } from '../lib/estudiantes';
+import { articuloPropio, slugLibre, nombreDeFirma, CATEGORIAS, COLOR_CATEGORIA, EMOJI_CATEGORIA } from '../lib/blog';
+import { minutosDeLectura } from '../lib/markdown';
 
 /**
  * Every mutation the teacher studio performs.
@@ -846,6 +848,179 @@ export const server = {
 
       await registrarAuditoria(db, actor, 'matricula.revocar', 'matricula', matricula.id,
         input.motivo, { cursoId: matricula.cursoId, estudianteUserId: matricula.estudianteUserId });
+      return { ok: true };
+    },
+  }),
+  /* ------------------------------------------------------------------ blog */
+
+  crearArticulo: defineAction({
+    accept: 'form',
+    input: z.object({
+      titulo: z.string().min(4, 'Ponle un título de al menos 4 letras.').max(140),
+      categoria: z.enum(CATEGORIAS),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const perfil = await perfilProfesor(db, actor);
+      if (!perfil && !esAdmin(actor.roles)) noEncontrado();
+
+      const usuario = (locals as { usuario?: { nombre?: string } }).usuario;
+      const firma = await nombreDeFirma(db, actor, usuario?.nombre ?? 'Equipo');
+
+      const id = crypto.randomUUID();
+      await db.insert(schema.articulo).values({
+        id,
+        slug: await slugLibre(db, input.titulo),
+        titulo: input.titulo,
+        autorUserId: actor.userId,
+        autorNombre: firma,
+        categoria: input.categoria,
+        color: COLOR_CATEGORIA[input.categoria] ?? '#5b4bc4',
+        emoji: EMOJI_CATEGORIA[input.categoria] ?? '📝',
+        estado: 'borrador',
+      });
+      await registrarAuditoria(db, actor, 'articulo.crear', 'articulo', id);
+      return { id };
+    },
+  }),
+
+  guardarArticulo: defineAction({
+    accept: 'form',
+    input: z.object({
+      articuloId: z.string(),
+      titulo: z.string().min(4).max(140),
+      resumen: z.string().max(200, 'El resumen no puede pasar de 200 caracteres.'),
+      cuerpo: z.string().max(60000),
+      categoria: z.enum(CATEGORIAS),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const art = await articuloPropio(db, actor, input.articuloId);
+      if (!art) noEncontrado();
+
+      // A published article keeps its slug: changing it would break every link
+      // already shared and every URL Google has indexed.
+      const slug = art.estado === 'publicado'
+        ? art.slug
+        : await slugLibre(db, input.titulo, art.id);
+
+      await db.update(schema.articulo).set({
+        titulo: input.titulo,
+        slug,
+        resumen: input.resumen,
+        cuerpo: input.cuerpo,
+        categoria: input.categoria,
+        color: COLOR_CATEGORIA[input.categoria] ?? art.color,
+        emoji: EMOJI_CATEGORIA[input.categoria] ?? art.emoji,
+        minutosLectura: minutosDeLectura(input.cuerpo),
+        updatedAt: sql`(unixepoch())`,
+      }).where(eq(schema.articulo.id, art.id));
+
+      await registrarAuditoria(db, actor, 'articulo.guardar', 'articulo', art.id);
+      return { ok: true };
+    },
+  }),
+
+  /** Teacher hands the article over for review. They cannot publish it. */
+  enviarARevision: defineAction({
+    accept: 'form',
+    input: z.object({ articuloId: z.string() }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const art = await articuloPropio(db, actor, input.articuloId);
+      if (!art) noEncontrado();
+
+      if (!art.resumen.trim()) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'Escribe el resumen antes de mandarlo a revisión.' });
+      }
+      if (art.cuerpo.trim().length < 400) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'El artículo está muy corto todavía.' });
+      }
+
+      await db.update(schema.articulo).set({
+        estado: 'revision', notaRevision: null, updatedAt: sql`(unixepoch())`,
+      }).where(eq(schema.articulo.id, art.id));
+
+      await registrarAuditoria(db, actor, 'articulo.revision', 'articulo', art.id);
+      return { ok: true };
+    },
+  }),
+
+  /** Admin only. This is the moment an article becomes a public, indexed page. */
+  publicarArticulo: defineAction({
+    accept: 'form',
+    input: z.object({ articuloId: z.string() }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      if (!esAdmin(actor.roles)) noEncontrado();
+
+      const filas = await db.select().from(schema.articulo)
+        .where(eq(schema.articulo.id, input.articuloId)).limit(1);
+      const art = filas[0];
+      if (!art) noEncontrado();
+
+      await db.update(schema.articulo).set({
+        estado: 'publicado',
+        // Keep the original date on a re-publish so the URL's age is honest.
+        publicadoAt: art.publicadoAt ?? sql`(unixepoch())`,
+        revisadoPor: actor.userId,
+        revisadoAt: sql`(unixepoch())`,
+        notaRevision: null,
+        updatedAt: sql`(unixepoch())`,
+      }).where(eq(schema.articulo.id, art.id));
+
+      await registrarAuditoria(db, actor, 'articulo.publicar', 'articulo', art.id,
+        undefined, { slug: art.slug });
+      return { ok: true };
+    },
+  }),
+
+  /** Admin sends it back with a reason the teacher can act on. */
+  devolverArticulo: defineAction({
+    accept: 'form',
+    input: z.object({
+      articuloId: z.string(),
+      nota: z.string().min(3, 'Dile qué tiene que cambiar.').max(1000),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      if (!esAdmin(actor.roles)) noEncontrado();
+
+      const filas = await db.select().from(schema.articulo)
+        .where(eq(schema.articulo.id, input.articuloId)).limit(1);
+      if (!filas[0]) noEncontrado();
+
+      await db.update(schema.articulo).set({
+        estado: 'borrador',
+        publicadoAt: null,
+        notaRevision: input.nota,
+        revisadoPor: actor.userId,
+        revisadoAt: sql`(unixepoch())`,
+        updatedAt: sql`(unixepoch())`,
+      }).where(eq(schema.articulo.id, input.articuloId));
+
+      await registrarAuditoria(db, actor, 'articulo.devolver', 'articulo', input.articuloId, input.nota);
+      return { ok: true };
+    },
+  }),
+
+  borrarArticulo: defineAction({
+    accept: 'form',
+    input: z.object({ articuloId: z.string() }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+      const art = await articuloPropio(db, actor, input.articuloId);
+      if (!art) noEncontrado();
+      // Taking a live page off the internet is an admin decision.
+      if (art.estado === 'publicado' && !esAdmin(actor.roles)) {
+        throw new ActionError({
+          code: 'FORBIDDEN',
+          message: 'Este artículo ya está publicado. Pídele a un administrador que lo baje.',
+        });
+      }
+      await db.delete(schema.articulo).where(eq(schema.articulo.id, art.id));
+      await registrarAuditoria(db, actor, 'articulo.borrar', 'articulo', art.id,
+        undefined, { titulo: art.titulo, estado: art.estado });
       return { ok: true };
     },
   }),

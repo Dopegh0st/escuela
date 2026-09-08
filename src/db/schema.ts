@@ -433,8 +433,52 @@ export const avisoLeido = sqliteTable('aviso_leido', {
   index('idx_leido_usuario').on(t.userId),
 ]);
 
+/* ========================================================================== */
+/* Blog                                                                        */
+/* ========================================================================== */
+
+/**
+ * Articles, written by teachers in the studio rather than committed as files.
+ *
+ * `estado` is a review gate, not a convenience: an article is a public, indexed
+ * page, and Elena's vertical is regulated. Nothing reaches the site until an
+ * admin approves it, so a banned clinical term or a promised outcome cannot go
+ * from a teacher's keyboard to Google unseen.
+ */
+export const articulo = sqliteTable('articulo', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  titulo: text('titulo').notNull(),
+  resumen: text('resumen').notNull().default(''),
+  /** Markdown. Rendered server-side; raw HTML is escaped before parsing. */
+  cuerpo: text('cuerpo').notNull().default(''),
+  /**
+   * Who wrote it in the app. Nullable because the first thirteen articles were
+   * migrated from files and predate their authors having accounts.
+   */
+  autorUserId: text('autor_user_id').references(() => user.id, { onDelete: 'set null' }),
+  /** The byline. Matches profesores.nombre so the page can show their avatar. */
+  autorNombre: text('autor_nombre').notNull(),
+  categoria: text('categoria').notNull(),
+  minutosLectura: integer('minutos_lectura').notNull().default(4),
+  color: text('color').notNull().default('#5b4bc4'),
+  emoji: text('emoji').notNull().default('📝'),
+  estado: text('estado').notNull().default('borrador'), // borrador | revision | publicado
+  publicadoAt: integer('publicado_at'),
+  revisadoPor: text('revisado_por').references(() => user.id, { onDelete: 'set null' }),
+  revisadoAt: integer('revisado_at'),
+  /** Why it was sent back, so the teacher knows what to change. */
+  notaRevision: text('nota_revision'),
+  createdAt: integer('created_at').notNull().default(now),
+  updatedAt: integer('updated_at').notNull().default(now),
+}, (t) => [
+  index('idx_articulo_estado').on(t.estado, t.publicadoAt),
+  index('idx_articulo_autor').on(t.autorUserId),
+]);
+
 export type Usuario = typeof user.$inferSelect;
 export type Curso = typeof curso.$inferSelect;
 export type Matricula = typeof matricula.$inferSelect;
 export type Orden = typeof orden.$inferSelect;
 export type Aviso = typeof aviso.$inferSelect;
+export type Articulo = typeof articulo.$inferSelect;

@@ -1,10 +1,35 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import CtaFinal from '../../components/CtaFinal.astro';
+import { getDb } from '../../lib/db';
+import { articulosPublicados } from '../../lib/blog';
 
-const posts = (await getCollection('blog', ({ data }) => data.publicado))
-  .sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf());
+// Articles live in D1 now, written by teachers in the studio rather than
+// committed as files, so this page is rendered per request instead of at build.
+export const prerender = false;
+
+// Published articles change rarely and are read often. The edge serves the
+// cached copy and revalidates behind the reader, so D1 is hit once per window
+// rather than once per visit.
+// Short on purpose. The edge cache spares D1 on a page that is read far more
+// than it changes, but a teacher who just published needs to SEE it published;
+// ten minutes of staleness reads as "it didn't work" and they publish again.
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=120, stale-while-revalidate=600',
+);
+
+// Shaped like the old content-collection entries so the markup below did not
+// have to change when the source did.
+const posts = (await articulosPublicados(getDb())).map((a) => ({
+  id: a.slug,
+  data: {
+    titulo: a.titulo, resumen: a.resumen, autor: a.autorNombre,
+    categoria: a.categoria, minutosLectura: a.minutosLectura,
+    color: a.color, emoji: a.emoji,
+    fecha: new Date((a.publicadoAt ?? a.createdAt) * 1000),
+  },
+}));
 
 const CAT_LABEL: Record<string, string> = {
   ingles: 'Inglés',

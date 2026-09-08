@@ -81,24 +81,6 @@ const profesores = defineCollection({
 });
 
 /** Blog — the SEO plan's 12-week content calendar lands here. */
-const blog = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
-  schema: ({ image }) => z.object({
-    titulo: z.string(),
-    resumen: z.string().max(200),
-    autor: z.string(),
-    fecha: z.date(),
-    actualizado: z.date().optional(),
-    categoria: z.enum(['ingles', 'musica', 'programacion', 'apoyo-escolar', 'consejos']),
-    minutosLectura: z.number().default(4),
-    imagen: image().optional(),
-    imagenAlt: z.string().optional(),
-    color: z.string().default('#5b4bc4'),
-    emoji: z.string().default('📝'),
-    publicado: z.boolean().default(true),
-  }),
-});
-
 /**
  * Talleres (workshops/events). A free one-off workshop is the strongest
  * top-of-funnel move available to a school with no students yet, and it lines
@@ -127,4 +109,5 @@ const talleres = defineCollection({
   }),
 });
 
-export const collections = { cursos, profesores, blog, talleres };
+// El blog vive en D1, no en archivos: lo escriben los profesores desde el estudio.
+export const collections = { cursos, profesores, talleres };

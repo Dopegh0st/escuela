@@ -15,6 +15,13 @@
       "when": 1788838652732,
       "tag": "0001_dizzy_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788846410397,
+      "tag": "0002_simple_snowbird",
+      "breakpoints": true
     }
   ]
 }
