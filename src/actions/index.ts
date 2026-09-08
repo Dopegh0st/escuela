@@ -1,8 +1,8 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro:schema';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { getDb, cfEnv, schema } from '../lib/db';
-import { cursoPropio, perfilProfesor, registrarAuditoria, type Actor } from '../lib/scope';
+import { cursoPropio, perfilProfesor, registrarAuditoria, leccionAccesible, matriculaDe, type Actor } from '../lib/scope';
 import { getAuth } from '../lib/auth';
 
 /**
@@ -377,6 +377,50 @@ export const server = {
         });
       }
       return { ok: true };
+    },
+  }),
+
+  /** Student marks a lesson done (or undoes it). Enrolment is re-checked here. */
+  marcarLeccion: defineAction({
+    accept: 'json',
+    input: z.object({
+      leccionId: z.string(),
+      completada: z.boolean(),
+      segundosVistos: z.coerce.number().int().min(0).max(86400).optional(),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+
+      const acceso = await leccionAccesible(db, actor, input.leccionId);
+      if (!acceso) noEncontrado();
+
+      const matricula = await matriculaDe(db, actor, acceso.curso.id);
+      // A teacher previewing their own course has no enrolment: let them read
+      // the lesson but never write progress against a row that does not exist.
+      if (!matricula) return { ok: true, guardado: false };
+
+      const existente = await db.select().from(schema.progreso).where(and(
+        eq(schema.progreso.matriculaId, matricula.id),
+        eq(schema.progreso.leccionId, input.leccionId),
+      )).limit(1);
+
+      if (existente[0]) {
+        await db.update(schema.progreso).set({
+          completada: input.completada,
+          segundosVistos: input.segundosVistos ?? existente[0].segundosVistos,
+          updatedAt: sql`(unixepoch())`,
+        }).where(eq(schema.progreso.id, existente[0].id));
+      } else {
+        await db.insert(schema.progreso).values({
+          id: crypto.randomUUID(),
+          matriculaId: matricula.id,
+          leccionId: input.leccionId,
+          completada: input.completada,
+          segundosVistos: input.segundosVistos ?? 0,
+        });
+      }
+
+      return { ok: true, guardado: true, completada: input.completada };
     },
   }),
 };

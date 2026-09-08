@@ -1,0 +1,259 @@
+---
+import Aprendizaje from '../../../layouts/Aprendizaje.astro';
+import { getDb, schema } from '../../../lib/db';
+import { leccionAccesible, matriculaDe } from '../../../lib/scope';
+import { eq, inArray, and } from 'drizzle-orm';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const actor = Astro.locals.actor!;
+const db = getDb();
+
+const acceso = await leccionAccesible(db, actor, id!);
+if (!acceso) return new Response('No encontramos esa lección.', { status: 404 });
+const { leccion, modulo, curso } = acceso;
+
+const matricula = await matriculaDe(db, actor, curso.id);
+const soloPreview = !matricula;
+
+// Ordered list of every published lesson in the course, for prev/next.
+const modulos = await db.select().from(schema.modulo)
+  .where(eq(schema.modulo.cursoId, curso.id)).orderBy(schema.modulo.orden);
+const modIds = modulos.map((m) => m.id);
+const todas = modIds.length
+  ? await db.select().from(schema.leccion)
+      .where(inArray(schema.leccion.moduloId, modIds))
+      .orderBy(schema.leccion.orden)
+  : [];
+const ordenModulo = new Map(modulos.map((m, i) => [m.id, i]));
+const secuencia = todas
+  .filter((l) => l.estado === 'publicada')
+  .sort((a, b) => (ordenModulo.get(a.moduloId)! - ordenModulo.get(b.moduloId)!) || (a.orden - b.orden));
+
+const idx = secuencia.findIndex((l) => l.id === leccion.id);
+const anterior = idx > 0 ? secuencia[idx - 1] : null;
+const siguiente = idx >= 0 && idx < secuencia.length - 1 ? secuencia[idx + 1] : null;
+
+let completada = false;
+if (matricula) {
+  const p = await db.select().from(schema.progreso).where(and(
+    eq(schema.progreso.matriculaId, matricula.id),
+    eq(schema.progreso.leccionId, leccion.id),
+  )).limit(1);
+  completada = Boolean(p[0]?.completada);
+}
+
+type Bloque = { tipo: string; titulo?: string; contenido?: string; url?: string };
+const bloques: Bloque[] = Array.isArray(leccion.bloques) ? (leccion.bloques as Bloque[]) : [];
+
+/**
+ * Only embed video from hosts we expect. Anything else renders as a link, so a
+ * pasted URL can never turn into an arbitrary iframe on a page students open.
+ */
+function incrustable(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const h = u.hostname.replace(/^www\./, '');
+    if (h === 'iframe.mediadelivery.net') return url;
+    if (h === 'youtube.com' && u.pathname.startsWith('/embed/')) return url;
+    if (h === 'youtube.com' && u.searchParams.get('v')) return `https://www.youtube.com/embed/${u.searchParams.get('v')}`;
+    if (h === 'youtu.be') return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    if (h === 'drive.google.com' && /\/file\/d\//.test(u.pathname)) {
+      return url.replace(/\/view.*$/, '/preview');
+    }
+    return null;
+  } catch { return null; }
+}
+---
+
+<Aprendizaje
+  title={leccion.titulo}
+  volverA={`/mi-aprendizaje/curso/${curso.id}/`}
+  volverTexto={curso.titulo}
+  ancho
+>
+  {soloPreview && (
+    <p class="preview">Vista previa de tu propia lección. Tu progreso no se guarda.</p>
+  )}
+
+  <header class="cabecera">
+    <p class="ruta">{modulo.titulo} · lección {idx + 1} de {secuencia.length}</p>
+    <h1>{leccion.titulo}</h1>
+    {leccion.duracionMin && <p class="dur">≈ {leccion.duracionMin} minutos</p>}
+  </header>
+
+  {bloques.length === 0 ? (
+    <p class="vacia">Esta lección todavía no tiene contenido.</p>
+  ) : (
+    <div class="bloques">
+      {bloques.map((b) => {
+        if (b.tipo === 'video') {
+          const src = b.url ? incrustable(b.url) : null;
+          return (
+            <section class="bloque">
+              {b.titulo && <h2>{b.titulo}</h2>}
+              {src ? (
+                <div class="video">
+                  <iframe src={src} title={b.titulo ?? 'Video de la lección'}
+                          loading="lazy" allowfullscreen
+                          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+                          referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                </div>
+              ) : b.url ? (
+                <a class="btn btn-primary" href={b.url} target="_blank" rel="noopener noreferrer">
+                  Abrir el video ↗
+                </a>
+              ) : null}
+              {b.contenido && <p class="nota">{b.contenido}</p>}
+            </section>
+          );
+        }
+        if (b.tipo === 'descarga') {
+          return (
+            <section class="bloque descarga">
+              <span class="desc-icono" aria-hidden="true">📎</span>
+              <div>
+                <h2>{b.titulo ?? 'Material de la clase'}</h2>
+                {b.contenido && <p class="nota">{b.contenido}</p>}
+                {b.url && (
+                  <a class="btn btn-secondary chico" href={b.url} target="_blank" rel="noopener noreferrer">
+                    Descargar ↗
+                  </a>
+                )}
+              </div>
+            </section>
+          );
+        }
+        if (b.tipo === 'actividad') {
+          return (
+            <section class="bloque actividad">
+              <p class="act-label">Actividad</p>
+              {b.titulo && <h2>{b.titulo}</h2>}
+              {b.contenido && <p class="texto">{b.contenido}</p>}
+            </section>
+          );
+        }
+        return (
+          <section class="bloque">
+            {b.titulo && <h2>{b.titulo}</h2>}
+            {b.contenido && <p class="texto">{b.contenido}</p>}
+          </section>
+        );
+      })}
+    </div>
+  )}
+
+  <div class="acciones" data-leccion={leccion.id} data-completada={String(completada)}>
+    {!soloPreview && (
+      <button type="button" id="marcar" class:list={['btn', completada ? 'btn-secondary' : 'btn-primary']}>
+        {completada ? '✓ Completada' : 'Marcar como completada'}
+      </button>
+    )}
+    <span id="aviso" class="aviso" hidden></span>
+  </div>
+
+  <nav class="nav-lecciones" aria-label="Navegación de lecciones">
+    {anterior
+      ? <a class="nav-btn" href={`/mi-aprendizaje/leccion/${anterior.id}/`}>← {anterior.titulo}</a>
+      : <span></span>}
+    {siguiente
+      ? <a class="nav-btn nav-sig" href={`/mi-aprendizaje/leccion/${siguiente.id}/`}>{siguiente.titulo} →</a>
+      : <a class="nav-btn nav-sig" href={`/mi-aprendizaje/curso/${curso.id}/`}>Volver al curso →</a>}
+  </nav>
+</Aprendizaje>
+
+<script>
+  import { actions } from 'astro:actions';
+
+  const caja = document.querySelector('.acciones') as HTMLElement | null;
+  const btn = document.getElementById('marcar');
+  const aviso = document.getElementById('aviso');
+
+  btn?.addEventListener('click', async () => {
+    const completada = caja!.dataset.completada === 'true';
+    const nueva = !completada;
+    btn.setAttribute('disabled', 'true');
+
+    const { error } = await actions.marcarLeccion({
+      leccionId: caja!.dataset.leccion!,
+      completada: nueva,
+    });
+
+    if (error) {
+      aviso!.hidden = false;
+      aviso!.textContent = 'No se pudo guardar. Revisa tu internet.';
+    } else {
+      caja!.dataset.completada = String(nueva);
+      btn.textContent = nueva ? '✓ Completada' : 'Marcar como completada';
+      btn.className = nueva ? 'btn btn-secondary' : 'btn btn-primary';
+      aviso!.hidden = false;
+      aviso!.textContent = nueva ? 'Guardado' : 'Marcada como pendiente';
+      setTimeout(() => { aviso!.hidden = true; }, 2000);
+    }
+    btn.removeAttribute('disabled');
+  });
+</script>
+
+<style>
+  .preview {
+    background: var(--color-sun-soft); border: 2px solid var(--color-sun);
+    border-radius: var(--radius-md); padding: 0.75rem 1rem;
+    font-size: var(--text-sm); margin: 0 0 1.5rem;
+  }
+
+  .cabecera { margin-bottom: 1.75rem; }
+  .ruta { font-size: var(--text-sm); color: var(--color-ink-faint); margin: 0 0 0.375rem; }
+  h1 { font-size: var(--text-2xl); margin: 0 0 0.375rem; }
+  @media (min-width: 640px) { h1 { font-size: var(--text-3xl); } }
+  .dur { font-size: var(--text-sm); color: var(--color-ink-faint); margin: 0; }
+
+  .bloques { display: grid; gap: 2rem; margin-bottom: 2.5rem; }
+  .bloque h2 { font-size: var(--text-xl); margin: 0 0 0.75rem; }
+  .texto { font-size: var(--text-lg); color: var(--color-ink-soft); margin: 0; white-space: pre-wrap; }
+  .nota { font-size: var(--text-sm); color: var(--color-ink-soft); margin: 0.875rem 0 0; white-space: pre-wrap; }
+
+  .video {
+    position: relative; aspect-ratio: 16 / 9;
+    background: var(--color-ink); border-radius: var(--radius-lg); overflow: hidden;
+  }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  .actividad {
+    background: var(--color-primary-soft);
+    border-left: 4px solid var(--color-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    padding: 1.25rem 1.5rem;
+  }
+  .act-label {
+    font-family: var(--font-display); font-weight: 800; font-size: var(--text-xs);
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-primary); margin: 0 0 0.5rem;
+  }
+
+  .descarga {
+    display: flex; gap: 1rem; align-items: flex-start;
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.25rem;
+  }
+  .desc-icono { font-size: 1.75rem; }
+  .descarga h2 { font-size: var(--text-base); margin: 0 0 0.25rem; }
+  .chico { min-height: 38px; padding: 0.5rem 1rem; font-size: var(--text-sm); margin-top: 0.75rem; }
+
+  .vacia { color: var(--color-ink-faint); font-style: italic; margin-bottom: 2.5rem; }
+
+  .acciones { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .aviso { font-size: var(--text-sm); font-weight: 700; color: var(--color-accent); }
+
+  .nav-lecciones {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+    padding-top: 1.5rem; border-top: 1px solid var(--color-border);
+  }
+  .nav-btn {
+    padding: 0.875rem 1rem; border: 2px solid var(--color-border);
+    border-radius: var(--radius-md); text-decoration: none; color: var(--color-ink);
+    font-size: var(--text-sm); font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .nav-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .nav-sig { text-align: right; }
+</style>

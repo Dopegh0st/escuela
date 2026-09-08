@@ -1,0 +1,163 @@
+---
+import Aprendizaje from '../../layouts/Aprendizaje.astro';
+import { getDb, schema } from '../../lib/db';
+import { matriculasPropias } from '../../lib/scope';
+import { waLink } from '../../config';
+import { inArray, eq } from 'drizzle-orm';
+
+export const prerender = false;
+
+const actor = Astro.locals.actor!;
+const usuario = Astro.locals.usuario!;
+const db = getDb();
+
+const matriculas = await matriculasPropias(db, actor);
+const cursoIds = matriculas.map((m) => m.cursoId);
+
+const cursos = cursoIds.length
+  ? await db.select().from(schema.curso).where(inArray(schema.curso.id, cursoIds))
+  : [];
+
+// Progress per course: published lessons done vs total.
+const resumen = await Promise.all(cursos.map(async (c) => {
+  const mods = await db.select({ id: schema.modulo.id })
+    .from(schema.modulo).where(eq(schema.modulo.cursoId, c.id));
+  const modIds = mods.map((m) => m.id);
+  const lecs = modIds.length
+    ? await db.select({ id: schema.leccion.id, estado: schema.leccion.estado })
+        .from(schema.leccion).where(inArray(schema.leccion.moduloId, modIds))
+    : [];
+  const publicadas = lecs.filter((l) => l.estado === 'publicada');
+
+  const matricula = matriculas.find((m) => m.cursoId === c.id)!;
+  const prog = publicadas.length
+    ? await db.select().from(schema.progreso)
+        .where(eq(schema.progreso.matriculaId, matricula.id))
+    : [];
+  const hechas = prog.filter(
+    (p) => p.completada && publicadas.some((l) => l.id === p.leccionId),
+  ).length;
+
+  // "Continue where you left off": first published lesson not yet done.
+  const pendiente = publicadas.find(
+    (l) => !prog.some((p) => p.leccionId === l.id && p.completada),
+  );
+
+  return {
+    curso: c,
+    total: publicadas.length,
+    hechas,
+    pct: publicadas.length ? Math.round((hechas / publicadas.length) * 100) : 0,
+    siguienteId: pendiente?.id ?? null,
+  };
+}));
+
+const primerNombre = (usuario.nombre ?? '').split(' ')[0];
+const enCurso = resumen.find((r) => r.siguienteId && r.hechas > 0)
+  ?? resumen.find((r) => r.siguienteId);
+---
+
+<Aprendizaje title="Mis cursos">
+  <p class="saludo">Hola, {primerNombre} 👋</p>
+
+  {cursos.length === 0 ? (
+    <div class="vacio">
+      <span class="vacio-emoji" aria-hidden="true">🎒</span>
+      <h1>Todavía no tienes cursos</h1>
+      <p>
+        Cuando te inscribas en uno, aparece aquí y puedes empezar de una.
+        ¿Quieres que te contemos qué hay abierto?
+      </p>
+      <div class="vacio-btns">
+        <a class="btn btn-primary" href="/cursos/">Ver los cursos</a>
+        <a class="btn btn-whatsapp" href={waLink('Hola, quiero saber qué cursos hay abiertos.')}>
+          Preguntar por WhatsApp
+        </a>
+      </div>
+    </div>
+  ) : (
+    <>
+      {enCurso && (
+        <section class="seguir">
+          <p class="seguir-label">Sigue donde te quedaste</p>
+          <h2>{enCurso.curso.titulo}</h2>
+          <div class="barra-prog"><span style={`width:${enCurso.pct}%`}></span></div>
+          <p class="seguir-meta">{enCurso.hechas} de {enCurso.total} lecciones</p>
+          <a class="btn btn-primary" href={`/mi-aprendizaje/leccion/${enCurso.siguienteId}/`}>
+            Continuar →
+          </a>
+        </section>
+      )}
+
+      <h1 class="titulo-lista">Tus cursos</h1>
+      <div class="grid">
+        {resumen.map((r) => (
+          <a class="tarjeta" href={`/mi-aprendizaje/curso/${r.curso.id}/`}>
+            <div class="tarjeta-top">
+              <h3>{r.curso.titulo}</h3>
+              <span class="pct">{r.pct}%</span>
+            </div>
+            <p class="resumen">{r.curso.resumen}</p>
+            <div class="barra-prog"><span style={`width:${r.pct}%`}></span></div>
+            <p class="meta">
+              {r.total === 0
+                ? 'El profesor todavía está preparando las lecciones'
+                : `${r.hechas} de ${r.total} lecciones`}
+            </p>
+          </a>
+        ))}
+      </div>
+    </>
+  )}
+</Aprendizaje>
+
+<style>
+  .saludo { font-family: var(--font-display); font-weight: 800; font-size: var(--text-2xl); margin: 0 0 1.5rem; }
+
+  .vacio {
+    text-align: center; padding: 3rem 1.5rem;
+    background: var(--color-raised); border: 2px dashed var(--color-border-strong);
+    border-radius: var(--radius-xl);
+  }
+  .vacio-emoji { font-size: 3rem; }
+  .vacio h1 { font-size: var(--text-xl); margin: 0.75rem 0 0.5rem; }
+  .vacio p { color: var(--color-ink-soft); max-width: 44ch; margin: 0 auto 1.75rem; }
+  .vacio-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+  .seguir {
+    background: linear-gradient(150deg, var(--color-deep), var(--color-deep-2));
+    color: #fff; border-radius: var(--radius-xl);
+    padding: 1.75rem; margin-bottom: 2.5rem;
+  }
+  .seguir-label {
+    font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em;
+    font-weight: 800; color: var(--color-sun); margin: 0 0 0.5rem;
+  }
+  .seguir h2 { color: #fff; font-size: var(--text-xl); margin: 0 0 1rem; }
+  .seguir .barra-prog { background: rgb(255 255 255 / 0.2); }
+  .seguir .barra-prog span { background: var(--color-sun); }
+  .seguir-meta { color: #cfc9ea; font-size: var(--text-sm); margin: 0.5rem 0 1.25rem; }
+
+  .titulo-lista { font-size: var(--text-xl); margin: 0 0 1rem; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .tarjeta {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.5rem;
+    text-decoration: none; color: inherit;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .tarjeta:hover { transform: translateY(-3px); border-color: var(--color-primary); }
+  .tarjeta-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+  .tarjeta h3 { font-size: var(--text-lg); margin: 0 0 0.375rem; }
+  .pct { font-family: var(--font-display); font-weight: 800; color: var(--color-accent); font-size: var(--text-sm); }
+  .resumen { color: var(--color-ink-soft); font-size: var(--text-sm); margin: 0 0 1rem; }
+  .meta { font-size: var(--text-xs); color: var(--color-ink-faint); margin: 0.5rem 0 0; }
+
+  .barra-prog {
+    height: 8px; border-radius: var(--radius-pill);
+    background: var(--color-sunken); overflow: hidden;
+  }
+  .barra-prog span { display: block; height: 100%; background: var(--color-accent); border-radius: var(--radius-pill); }
+</style>

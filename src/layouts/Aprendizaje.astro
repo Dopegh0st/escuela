@@ -1,0 +1,123 @@
+---
+import '../styles/global.css';
+import { SITE } from '../config';
+
+interface Props {
+  title: string;
+  volverA?: string;
+  volverTexto?: string;
+  ancho?: boolean;
+}
+
+const { title, volverA, volverTexto, ancho = false } = Astro.props;
+const usuario = Astro.locals.usuario;
+const inicial = (usuario?.nombre ?? '?').charAt(0).toUpperCase();
+const esProfe = usuario?.roles?.includes('profesor') || usuario?.roles?.includes('admin');
+---
+
+<!doctype html>
+<html lang="es-EC">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · {SITE.name}</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" />
+  </head>
+
+  <body>
+    <a href="#contenido" class="skip">Saltar al contenido</a>
+
+    <header class="barra">
+      <div class="barra-inner">
+        <a href="/mi-aprendizaje/" class="marca">{SITE.name}</a>
+
+        <nav class="nav" aria-label="Principal">
+          <a href="/mi-aprendizaje/">Mis cursos</a>
+          {esProfe && <a href="/estudio/">Estudio</a>}
+        </nav>
+
+        <div class="yo">
+          <span class="nombre">{usuario?.nombre}</span>
+          <span class="avatar" aria-hidden="true">{inicial}</span>
+          <button class="salir" id="salir" type="button">Salir</button>
+        </div>
+      </div>
+    </header>
+
+    {volverA && (
+      <div class="volver-barra">
+        <div class:list={['contenedor', ancho && 'ancho']}>
+          <a class="volver" href={volverA}>← {volverTexto ?? 'Volver'}</a>
+        </div>
+      </div>
+    )}
+
+    <main id="contenido" class:list={['contenedor', ancho && 'ancho']}>
+      <slot />
+    </main>
+
+    <script is:inline>
+      document.getElementById('salir')?.addEventListener('click', async () => {
+        await fetch('/api/auth/sign-out', { method: 'POST' });
+        window.location.href = '/entrar';
+      });
+    </script>
+
+    <style>
+      body { background: var(--color-surface); }
+
+      .skip { position: absolute; left: -9999px; top: 0; background: var(--color-ink); color: #fff; padding: 0.75rem 1.25rem; z-index: 100; }
+      .skip:focus { left: 0; }
+
+      .barra {
+        position: sticky; top: 0; z-index: 40;
+        background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--color-border);
+      }
+      .barra-inner {
+        max-width: 62rem; margin-inline: auto;
+        padding: 0 1.25rem; height: 62px;
+        display: flex; align-items: center; gap: 1.25rem;
+      }
+      .marca {
+        font-family: var(--font-display); font-weight: 800;
+        font-size: var(--text-lg); color: var(--color-ink); text-decoration: none;
+      }
+      .nav { display: none; gap: 1.25rem; }
+      .nav a { color: var(--color-ink-soft); text-decoration: none; font-weight: 600; font-size: var(--text-sm); }
+      .nav a:hover { color: var(--color-primary); }
+
+      .yo { margin-left: auto; display: flex; align-items: center; gap: 0.625rem; }
+      .nombre { display: none; font-size: var(--text-sm); color: var(--color-ink-soft); font-weight: 600; }
+      .avatar {
+        width: 2rem; height: 2rem; border-radius: var(--radius-pill);
+        background: var(--color-accent); color: #fff;
+        display: grid; place-items: center;
+        font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm);
+      }
+      .salir {
+        background: none; border: none; cursor: pointer;
+        color: var(--color-ink-faint); font-size: var(--text-sm);
+        font-weight: 700; font-family: var(--font-display);
+      }
+      .salir:hover { color: var(--color-danger); }
+
+      .volver-barra { border-bottom: 1px solid var(--color-border); background: var(--color-sunken); }
+      .volver { display: inline-block; padding: 0.625rem 0; color: var(--color-primary); font-weight: 700; font-size: var(--text-sm); text-decoration: none; }
+
+      .contenedor { max-width: 62rem; margin-inline: auto; padding: 1.75rem 1.25rem 4rem; }
+      .contenedor.ancho { max-width: 48rem; }
+
+      @media (min-width: 640px) {
+        .nav { display: flex; }
+        .nombre { display: inline; }
+      }
+    </style>
+  </body>
+</html>

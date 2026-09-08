@@ -176,3 +176,70 @@ export async function registrarAuditoria(
     metadatos: metadatos ?? null,
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/* Student course access                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A course the actor may actually study, or null.
+ *
+ * Enrolment is the gate, and it is checked here rather than in each page, so a
+ * student cannot reach paid content by guessing a course id. An admin passes;
+ * the owning teacher passes so they can preview their own course as a student.
+ */
+export async function cursoMatriculado(db: Db, actor: Actor, cursoId: string) {
+  const rows = await db.select().from(schema.curso)
+    .where(eq(schema.curso.id, cursoId)).limit(1);
+  const curso = rows[0];
+  if (!curso) return null;
+
+  if (esAdmin(actor.roles)) return curso;
+
+  const mat = await db.select().from(schema.matricula).where(and(
+    eq(schema.matricula.estudianteUserId, actor.userId),
+    eq(schema.matricula.cursoId, cursoId),
+    eq(schema.matricula.estado, 'activa'),
+  )).limit(1);
+  if (mat[0]) return curso;
+
+  // The teacher who owns it may preview their own work.
+  const perfil = await perfilProfesor(db, actor);
+  if (perfil && curso.profesorId === perfil.id) return curso;
+
+  return null;
+}
+
+/** Lesson plus its course, only if the actor is enrolled and the lesson is published. */
+export async function leccionAccesible(db: Db, actor: Actor, leccionId: string) {
+  const lecs = await db.select().from(schema.leccion)
+    .where(eq(schema.leccion.id, leccionId)).limit(1);
+  const leccion = lecs[0];
+  if (!leccion) return null;
+
+  const mods = await db.select().from(schema.modulo)
+    .where(eq(schema.modulo.id, leccion.moduloId)).limit(1);
+  const modulo = mods[0];
+  if (!modulo) return null;
+
+  const curso = await cursoMatriculado(db, actor, modulo.cursoId);
+  if (!curso) return null;
+
+  // A draft lesson is invisible to students but visible to its teacher/admin.
+  if (leccion.estado !== 'publicada') {
+    const perfil = await perfilProfesor(db, actor);
+    const esDueno = perfil && curso.profesorId === perfil.id;
+    if (!esDueno && !esAdmin(actor.roles)) return null;
+  }
+
+  return { leccion, modulo, curso };
+}
+
+/** The actor's enrolment row for a course, needed to write progress against it. */
+export async function matriculaDe(db: Db, actor: Actor, cursoId: string) {
+  const rows = await db.select().from(schema.matricula).where(and(
+    eq(schema.matricula.estudianteUserId, actor.userId),
+    eq(schema.matricula.cursoId, cursoId),
+  )).limit(1);
+  return rows[0] ?? null;
+}
