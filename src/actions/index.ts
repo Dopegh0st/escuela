@@ -3,6 +3,7 @@ import { z } from 'astro:schema';
 import { eq, sql } from 'drizzle-orm';
 import { getDb, cfEnv, schema } from '../lib/db';
 import { cursoPropio, perfilProfesor, registrarAuditoria, type Actor } from '../lib/scope';
+import { getAuth } from '../lib/auth';
 
 /**
  * Every mutation the teacher studio performs.
@@ -288,6 +289,92 @@ export const server = {
           await db.update(schema.leccion).set({ orden: l.orden, moduloId: m.id })
             .where(eq(schema.leccion.id, l.id));
         }
+      }
+      return { ok: true };
+    },
+  }),
+
+  /** Full lesson save: title plus the ordered block list that IS the lesson. */
+  guardarLeccion: defineAction({
+    accept: 'json',
+    input: z.object({
+      leccionId: z.string(),
+      titulo: z.string().min(2).max(140),
+      duracionMin: z.coerce.number().int().min(0).max(300).optional(),
+      estado: z.enum(['borrador', 'publicada']).default('borrador'),
+      bloques: z.array(z.object({
+        tipo: z.enum(['texto', 'video', 'actividad', 'descarga']),
+        titulo: z.string().max(160).optional(),
+        // Text body, activity instructions, or a caption depending on tipo.
+        contenido: z.string().max(20000).optional(),
+        // Video/download URL. Kept as a URL rather than an upload for now:
+        // direct-to-Bunny resumable upload needs a Bunny account, and a URL
+        // field lets teachers put real content in today instead of waiting.
+        url: z.string().max(600).optional(),
+      })).max(40),
+    }),
+    handler: async (input, { locals }) => {
+      const { db, actor } = ctxOf(locals);
+
+      // Ownership resolves lesson -> module -> course. Never trust the client.
+      const lecs = await db.select().from(schema.leccion)
+        .where(eq(schema.leccion.id, input.leccionId)).limit(1);
+      const lec = lecs[0];
+      if (!lec) noEncontrado();
+      const mods = await db.select().from(schema.modulo)
+        .where(eq(schema.modulo.id, lec.moduloId)).limit(1);
+      if (!mods[0]) noEncontrado();
+      const curso = await cursoPropio(db, actor, mods[0].cursoId);
+      if (!curso) noEncontrado();
+
+      // Drop blocks with nothing in them rather than persisting empty shells
+      // that render as blank gaps for the student.
+      const limpios = input.bloques.filter(
+        (b) => (b.contenido && b.contenido.trim()) || (b.url && b.url.trim()) || (b.titulo && b.titulo.trim()),
+      );
+
+      await db.update(schema.leccion).set({
+        titulo: input.titulo,
+        bloques: limpios,
+        duracionMin: input.duracionMin ?? null,
+        estado: input.estado,
+      }).where(eq(schema.leccion.id, input.leccionId));
+
+      await registrarAuditoria(db, actor, 'leccion.guardar', 'leccion', input.leccionId,
+        undefined, { bloques: limpios.length });
+      return { ok: true, bloques: limpios.length };
+    },
+  }),
+
+  /** Password change. The founder is still on a generated password. */
+  cambiarClave: defineAction({
+    accept: 'form',
+    input: z.object({
+      actual: z.string().min(1, 'Escribe tu contraseña actual.'),
+      nueva: z.string().min(8, 'La nueva contraseña necesita al menos 8 caracteres.'),
+      repetir: z.string(),
+    }).refine((d) => d.nueva === d.repetir, {
+      message: 'Las dos contraseñas nuevas no coinciden.',
+      path: ['repetir'],
+    }),
+    handler: async (input, { locals, request }) => {
+      ctxOf(locals); // must be signed in
+      const auth = getAuth(new URL(request.url).origin);
+      try {
+        // Better Auth verifies the current password and revokes other sessions.
+        await auth.api.changePassword({
+          body: {
+            currentPassword: input.actual,
+            newPassword: input.nueva,
+            revokeOtherSessions: true,
+          },
+          headers: request.headers,
+        });
+      } catch {
+        throw new ActionError({
+          code: 'BAD_REQUEST',
+          message: 'Tu contraseña actual no es correcta.',
+        });
       }
       return { ok: true };
     },

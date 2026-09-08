@@ -1,0 +1,262 @@
+---
+import Estudio from '../../../layouts/Estudio.astro';
+import { getDb, schema } from '../../../lib/db';
+import { cursoPropio } from '../../../lib/scope';
+import { eq } from 'drizzle-orm';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const actor = Astro.locals.actor!;
+const db = getDb();
+
+const lecs = await db.select().from(schema.leccion)
+  .where(eq(schema.leccion.id, id!)).limit(1);
+const leccion = lecs[0];
+if (!leccion) return new Response('No encontramos esa lección.', { status: 404 });
+
+const mods = await db.select().from(schema.modulo)
+  .where(eq(schema.modulo.id, leccion.moduloId)).limit(1);
+const modulo = mods[0];
+if (!modulo) return new Response('No encontramos esa lección.', { status: 404 });
+
+// 404 rather than 403 — a 403 would confirm the lesson exists.
+const curso = await cursoPropio(db, actor, modulo.cursoId);
+if (!curso) return new Response('No encontramos esa lección.', { status: 404 });
+
+const bloques = Array.isArray(leccion.bloques) ? leccion.bloques : [];
+---
+
+<Estudio
+  title={leccion.titulo}
+  seccion="cursos"
+  volverA={`/estudio/curso/${curso.id}/`}
+  volverTexto={curso.titulo}
+>
+  <div class="cabecera">
+    <p class="ruta">{curso.titulo} · {modulo.titulo}</p>
+    <p class="ayuda">
+      Una lección es una lista de bloques. Agrega los que necesites y ordénalos;
+      el estudiante los ve en este mismo orden.
+    </p>
+  </div>
+
+  <div class="editor">
+    <div class="campos">
+      <label for="titulo">Título de la lección</label>
+      <input id="titulo" value={leccion.titulo} maxlength="140" />
+
+      <div class="fila">
+        <div>
+          <label for="duracion">Duración estimada (minutos)</label>
+          <input id="duracion" type="number" min="0" max="300"
+                 value={leccion.duracionMin ?? ''} placeholder="Ej: 12" />
+        </div>
+        <div>
+          <label for="estado">Estado</label>
+          <select id="estado">
+            <option value="borrador" selected={leccion.estado !== 'publicada'}>Borrador</option>
+            <option value="publicada" selected={leccion.estado === 'publicada'}>Publicada</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <script type="application/json" id="datos-leccion" set:html={JSON.stringify({ leccionId: leccion.id, inicial: bloques })} />
+
+  <div id="bloques" class="bloques"></div>
+
+    <div class="agregar">
+      <span class="agregar-label">Agregar bloque:</span>
+      <button type="button" class="btn btn-secondary chico" data-add="texto">📝 Texto</button>
+      <button type="button" class="btn btn-secondary chico" data-add="video">🎬 Video</button>
+      <button type="button" class="btn btn-secondary chico" data-add="actividad">✏️ Actividad</button>
+      <button type="button" class="btn btn-secondary chico" data-add="descarga">📎 Descarga</button>
+    </div>
+
+    <div class="barra-guardar">
+      <button type="button" class="btn btn-primary" id="guardar">Guardar lección</button>
+      <span id="estado-guardado" class="estado-guardado" hidden></span>
+    </div>
+  </div>
+</Estudio>
+
+<template id="tpl-bloque">
+  <article class="bloque" data-tipo="">
+    <header class="bloque-head">
+      <span class="bloque-tipo"></span>
+      <div class="bloque-btns">
+        <button type="button" class="mini" data-mover="arriba" aria-label="Subir bloque">↑</button>
+        <button type="button" class="mini" data-mover="abajo" aria-label="Bajar bloque">↓</button>
+        <button type="button" class="mini mini-borrar" data-borrar aria-label="Quitar bloque">✕</button>
+      </div>
+    </header>
+    <div class="bloque-cuerpo">
+      <input class="b-titulo" placeholder="Título del bloque (opcional)" maxlength="160" />
+      <input class="b-url" placeholder="Pega el enlace del video" maxlength="600" />
+      <textarea class="b-contenido" rows="4"></textarea>
+      <p class="b-nota"></p>
+    </div>
+  </article>
+</template>
+
+<script>
+  import { actions } from 'astro:actions';
+
+  const datos = JSON.parse(document.getElementById('datos-leccion').textContent);
+  const leccionId = datos.leccionId;
+  const inicial = datos.inicial;
+  const CONFIG = {
+    texto:     { icono: '📝', nombre: 'Texto',     url: false, ph: 'Escribe la explicación. Los saltos de línea se respetan.' },
+    video:     { icono: '🎬', nombre: 'Video',     url: true,  ph: 'Nota para el estudiante (opcional).',
+                 nota: 'Por ahora se pega el enlace (Bunny, YouTube o Drive). La subida directa se activa cuando conectemos Bunny Stream.' },
+    actividad: { icono: '✏️', nombre: 'Actividad', url: false, ph: 'Qué tiene que hacer el estudiante. Sé concreto.' },
+    descarga:  { icono: '📎', nombre: 'Descarga',  url: true,  ph: 'Descripción del archivo (opcional).',
+                 nota: 'Enlace al PDF, partitura o material.' },
+  };
+
+  const cont = document.getElementById('bloques');
+  const tpl = document.getElementById('tpl-bloque');
+  const estado = document.getElementById('estado-guardado');
+
+  function crear(tipo, datos) {
+    const cfg = CONFIG[tipo];
+    const nodo = tpl.content.firstElementChild.cloneNode(true);
+    nodo.dataset.tipo = tipo;
+    nodo.querySelector('.bloque-tipo').textContent = cfg.icono + '  ' + cfg.nombre;
+
+    const url = nodo.querySelector('.b-url');
+    const txt = nodo.querySelector('.b-contenido');
+    const nota = nodo.querySelector('.b-nota');
+
+    if (!cfg.url) url.remove(); else url.value = (datos && datos.url) || '';
+    txt.placeholder = cfg.ph;
+    txt.value = (datos && datos.contenido) || '';
+    nodo.querySelector('.b-titulo').value = (datos && datos.titulo) || '';
+    if (cfg.nota) nota.textContent = cfg.nota; else nota.remove();
+
+    return nodo;
+  }
+
+  // Seed from what is already saved.
+  (inicial || []).forEach((b) => {
+    if (CONFIG[b.tipo]) cont.appendChild(crear(b.tipo, b));
+  });
+
+  document.querySelectorAll('[data-add]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      cont.appendChild(crear(btn.dataset.add, null));
+      cont.lastElementChild.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      cont.lastElementChild.querySelector('textarea')?.focus();
+    });
+  });
+
+  cont.addEventListener('click', (e) => {
+    const bloque = e.target.closest('.bloque');
+    if (!bloque) return;
+    if (e.target.closest('[data-borrar]')) {
+      if (confirm('¿Quitar este bloque?')) bloque.remove();
+      return;
+    }
+    const mov = e.target.closest('[data-mover]');
+    if (!mov) return;
+    const arriba = mov.dataset.mover === 'arriba';
+    const hermano = arriba ? bloque.previousElementSibling : bloque.nextElementSibling;
+    if (!hermano) return;
+    arriba ? cont.insertBefore(bloque, hermano) : cont.insertBefore(hermano, bloque);
+  });
+
+  function recolectar() {
+    return [...cont.querySelectorAll('.bloque')].map((b) => ({
+      tipo: b.dataset.tipo,
+      titulo: b.querySelector('.b-titulo').value.trim() || undefined,
+      contenido: b.querySelector('.b-contenido').value.trim() || undefined,
+      url: b.querySelector('.b-url')?.value.trim() || undefined,
+    }));
+  }
+
+  document.getElementById('guardar').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    estado.hidden = false;
+    estado.className = 'estado-guardado';
+    estado.textContent = 'Guardando…';
+
+    const { error, data } = await actions.guardarLeccion({
+      leccionId,
+      titulo: document.getElementById('titulo').value,
+      duracionMin: document.getElementById('duracion').value || undefined,
+      estado: document.getElementById('estado').value,
+      bloques: recolectar(),
+    });
+
+    if (error) {
+      estado.className = 'estado-guardado malo';
+      estado.textContent = error.message || 'No se pudo guardar.';
+    } else {
+      estado.className = 'estado-guardado bien';
+      estado.textContent = `Guardado · ${data.bloques} ${data.bloques === 1 ? 'bloque' : 'bloques'}`;
+      setTimeout(() => { estado.hidden = true; }, 2600);
+    }
+    btn.disabled = false;
+  });
+</script>
+
+<style>
+  .cabecera { margin-bottom: 1.5rem; }
+  .ruta { font-size: var(--text-sm); color: var(--color-ink-faint); margin: 0 0 0.25rem; }
+  .ayuda { color: var(--color-ink-soft); margin: 0; max-width: 60ch; }
+
+  .editor { max-width: 46rem; }
+  .campos {
+    background: var(--color-raised); border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.25rem;
+  }
+  label { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-sm); margin-bottom: 0.375rem; }
+  input, select, textarea {
+    width: 100%; padding: 0.6875rem 0.875rem;
+    font-size: var(--text-base); font-family: inherit;
+    border: 2px solid var(--color-border-strong); border-radius: var(--radius-md);
+    background: var(--color-surface); color: var(--color-ink); margin-bottom: 1rem;
+  }
+  textarea { resize: vertical; line-height: 1.55; }
+  input:focus, select:focus, textarea:focus { border-color: var(--color-primary); }
+  .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; }
+
+  .bloques { display: grid; gap: 0.875rem; margin-bottom: 1.25rem; }
+  .bloque { background: var(--color-raised); border: 2px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .bloque-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    padding: 0.75rem 1rem; background: var(--color-sunken);
+  }
+  .bloque-tipo { font-family: var(--font-display); font-weight: 800; font-size: var(--text-sm); }
+  .bloque-btns { display: flex; gap: 0.25rem; }
+  .mini {
+    width: 1.75rem; height: 1.75rem; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-strong); background: var(--color-raised);
+    cursor: pointer; font-size: var(--text-xs); color: var(--color-ink-soft);
+    display: grid; place-items: center;
+  }
+  .mini:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  .mini-borrar:hover { border-color: var(--color-danger); color: var(--color-danger); }
+  .bloque-cuerpo { padding: 1rem 1rem 0.25rem; }
+  .b-nota { font-size: var(--text-xs); color: var(--color-ink-faint); margin: -0.5rem 0 0.875rem; }
+
+  .agregar {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    padding: 1rem; border: 2px dashed var(--color-border-strong);
+    border-radius: var(--radius-lg); margin-bottom: 1.25rem;
+  }
+  .agregar-label { font-size: var(--text-sm); color: var(--color-ink-faint); margin-right: 0.25rem; }
+  .chico { min-height: 38px; padding: 0.5rem 0.875rem; font-size: var(--text-sm); }
+
+  .barra-guardar {
+    position: sticky; bottom: 0;
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 0;
+    background: linear-gradient(to top, var(--color-sunken) 70%, transparent);
+  }
+  .estado-guardado { font-size: var(--text-sm); font-weight: 700; color: var(--color-ink-soft); }
+  .estado-guardado.bien { color: var(--color-accent); }
+  .estado-guardado.malo { color: var(--color-danger); }
+</style>

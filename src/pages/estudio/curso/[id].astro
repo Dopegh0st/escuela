@@ -98,7 +98,12 @@ const estaPublicado = cursoActual.estado === 'publicado';
             <ul class="lecciones">
               {(leccionesPorModulo.get(m.id) ?? []).map((l) => (
                 <li data-leccion={l.id}>
-                  <span class="lec-titulo">{l.titulo}</span>
+                  <a class="lec-titulo" href={`/estudio/leccion/${l.id}/`}>{l.titulo}</a>
+                  <span class:list={['lec-bloques', (!Array.isArray(l.bloques) || l.bloques.length === 0) && 'lec-vacia']}>
+                    {Array.isArray(l.bloques) && l.bloques.length > 0
+                      ? `${l.bloques.length} ${l.bloques.length === 1 ? 'bloque' : 'bloques'}`
+                      : 'sin contenido'}
+                  </span>
                   <div class="orden-btns">
                     <button type="button" class="mini" data-mover="lec-arriba" aria-label="Subir lección">↑</button>
                     <button type="button" class="mini" data-mover="lec-abajo" aria-label="Bajar lección">↓</button>
@@ -306,7 +311,12 @@ const estaPublicado = cursoActual.estado === 'publicado';
 
   .lecciones { list-style: none; margin: 0; padding: 0; }
   .lecciones li { display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem 1rem; border-top: 1px solid var(--color-border); }
-  .lec-titulo { flex: 1; font-size: var(--text-sm); }
+  .lec-titulo { flex: 1; font-size: var(--text-sm); color: var(--color-ink); text-decoration: none; font-weight: 600; }
+  .lec-titulo:hover { color: var(--color-primary); text-decoration: underline; }
+  .lec-bloques { font-size: var(--text-xs); color: var(--color-ink-faint); white-space: nowrap; }
+  /* A lesson with no blocks is the single most useful thing to surface here:
+     it is invisible on the course page but empty for the student. */
+  .lec-vacia { color: var(--color-danger); font-weight: 700; }
   .vacia { color: var(--color-ink-faint); font-size: var(--text-sm); font-style: italic; }
 
   .agregar { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--color-border); background: var(--color-surface); }
