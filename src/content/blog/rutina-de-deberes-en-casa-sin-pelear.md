@@ -2,7 +2,7 @@
 titulo: "La rutina de deberes en casa que no termina en pelea"
 resumen: "Casi nunca es cuestión de disciplina. Es cuestión de hora, de duración y de quién se sienta al lado los primeros minutos. Cómo armar una rutina que aguante."
 autor: "Elena"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "apoyo-escolar"
 minutosLectura: 7
 color: "#c98a10"
@@ -19,15 +19,17 @@ que el niño sea vago o con que a ti te falte carácter. Tiene que ver con tres
 cosas concretas: a qué hora se sientan, cuánto se supone que debe durar y quién
 está al lado los primeros minutos. Las tres se pueden cambiar esta semana.
 
-Esto es orientación pedagógica, escrita desde el aula. No reemplaza el criterio
-del colegio de tu hijo ni lo que te diga un profesional de la salud.
+Esto es orientación pedagógica para acompañar en casa. No reemplaza el criterio
+del colegio de tu hijo ni lo que te diga un profesional de la salud con título
+registrado. En esta escuela damos acompañamiento pedagógico y refuerzo escolar;
+no somos un servicio de salud.
 
 ## Primero: ¿cuánto debería durar esto?
 
 Antes de arreglar la rutina hay que saber si el problema es la rutina o es el
 volumen de trabajo.
 
-Una regla práctica que muchos docentes usamos: **unos diez minutos de deberes por
+Una regla práctica que usan muchos docentes: **unos diez minutos de deberes por
 cada año de escolaridad**. Segundo de básica, veinte minutos. Séptimo, alrededor
 de una hora. En bachillerato ya es otra conversación, porque entran trabajos
 largos que se reparten en varios días.
@@ -111,7 +113,7 @@ alta se come los megas de la semana y el jueves ya no hay con qué subir la tare
 
 Vale la pena resolverlo de una: ver los videos en calidad baja, descargar lo que
 se pueda cuando haya wifi, y si el colegio manda algo pesado todas las semanas,
-decirlo. Los docentes no siempre sabemos cómo se conecta cada familia, y si
+decirlo. Los docentes no siempre saben cómo se conecta cada familia, y si
 alguien lo dice, se ajusta.
 
 ## Cuando ya cambiaste la rutina y sigue igual

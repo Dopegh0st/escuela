@@ -2,7 +2,7 @@
 titulo: "Cuánto gana un programador en Ecuador y cuánto se demora"
 resumen: "Ecuador ya está dolarizado, así que ese anuncio no fue escrito para ti. Los sueldos reales, de dónde salen las cifras y el tiempo que toma."
 autor: "Daniel"
-fecha: 2026-09-10
+fecha: 2026-09-07
 categoria: "programacion"
 minutosLectura: 8
 color: "#5b4bc4"
@@ -31,10 +31,11 @@ Estas son las cifras públicas a septiembre de 2026:
 - **Salario básico unificado 2026: USD 482 al mes.** Después del aporte
   obligatorio al IESS (9,45%) quedan unos **$436** líquidos. Ese es el piso legal
   de cualquier trabajo con relación de dependencia en el país.
-- **Computrabajo Ecuador**, que estima a partir de decenas de miles de datos de
-  empresas y usuarios de los últimos doce meses, publica: *desarrollador
-  programador* **$517** al mes, *desarrollador web* **$775**, *desarrollador de
-  software* **$1.053**.
+- **Computrabajo Ecuador**, que estima a partir de datos de empresas y usuarios de
+  los últimos doce meses, publica: *desarrollador programador* **$517** al mes,
+  *desarrollador web* **$775**, *desarrollador de software* **$1.053**. Fíjate en
+  el detalle: esa última cifra está armada sobre apenas 37 sueldos reportados. No
+  es mentira, pero tampoco es una encuesta nacional.
 - **sueldo.ec**, en su análisis de junio de 2026, da rangos por experiencia:
   junior de 0 a 2 años, **$700 a $1.100**; de 2 a 5 años, **$1.100 a $2.000**;
   senior de 5 a 10 años, **$2.000 a $3.500**.

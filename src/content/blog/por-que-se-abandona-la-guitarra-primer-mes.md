@@ -2,7 +2,7 @@
 titulo: "Por qué casi todos dejan la guitarra en el primer mes"
 resumen: "Los cinco motivos reales por los que la gente abandona en las primeras semanas, y qué hacer con cada uno. Ninguno tiene que ver con el talento."
 autor: "David"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "musica"
 minutosLectura: 6
 color: "#14897c"
@@ -33,7 +33,7 @@ el pulgar o el antebrazo, no lo es, y no se arregla aguantando.
 Casi siempre son dos causas y las dos se corrigen: el pulgar apretando el mástil
 como una tenaza, o las cuerdas demasiado altas —defecto del instrumento, no
 tuyo— que expliqué cómo detectar en [qué revisar al comprar tu primera
-guitarra](/blog/primera-guitarra-ecuador-cuanto-cuesta).
+guitarra](/blog/primera-guitarra-ecuador-cuanto-cuesta/).
 
 Si corriges las dos y el dolor sigue, que lo vea un profesional de la salud.
 
@@ -159,7 +159,7 @@ cambia en línea es lo que tienes que exigir:
 - **Cable antes que wifi**, si puedes.
 - **Clase individual para música.** En un grupo el profesor no alcanza a escuchar
   a cada uno, y en música escuchar es la clase. Por eso las nuestras de [guitarra
-  desde cero](/cursos/guitarra-desde-cero) son individuales, pero el criterio vale
+  desde cero](/cursos/guitarra-desde-cero/) son individuales, pero el criterio vale
   con cualquiera.
 
 ## Para esta semana

@@ -13,6 +13,11 @@ emoji: "🌱"
 correcta. Un niño que evita las tareas normalmente está evitando algo más
 concreto, y vale la pena averiguar qué antes de buscar ayuda externa.
 
+Esto es orientación pedagógica. No reemplaza el criterio del colegio de tu hijo
+ni lo que te diga un profesional de la salud con título registrado. En esta
+escuela damos acompañamiento pedagógico y refuerzo escolar; no somos un servicio
+de salud.
+
 ## 1. ¿Ve bien y oye bien?
 
 Suena obvio y se pasa por alto todo el tiempo. Muchos niños que "no se

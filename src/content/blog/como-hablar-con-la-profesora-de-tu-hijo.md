@@ -2,7 +2,7 @@
 titulo: "Cómo hablar con la profesora de tu hijo cuando algo no va bien"
 resumen: "Qué llevar anotado, las siete preguntas que sirven y lo que el colegio está obligado a hacer. La diferencia entre salir con un plan y salir con un vamos a ver."
 autor: "Elena"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "apoyo-escolar"
 minutosLectura: 7
 color: "#c98a10"
@@ -17,13 +17,15 @@ Eso pasa en todos los colegios del país y no es culpa de nadie: cuatro minutos 
 alcanzan. La solución no es hablar más fuerte, es hablar en otro momento y llegar
 con otra cosa preparada.
 
-Esto es orientación pedagógica desde el lado del aula. No reemplaza el criterio
-del colegio de tu hijo ni lo que te diga un profesional de la salud.
+Esto es orientación pedagógica para preparar esa conversación. No reemplaza el
+criterio del colegio de tu hijo ni lo que te diga un profesional de la salud con
+título registrado. En esta escuela damos acompañamiento pedagógico y refuerzo
+escolar; no somos un servicio de salud.
 
 ## Pide una reunión aparte, no la de la libreta
 
 La entrega de notas sirve para recibir la nota. Para conversar hace falta una cita
-propia, y pedirla es normal: los docentes tenemos horas asignadas para eso.
+propia, y pedirla es normal: los docentes tienen horas asignadas para eso.
 
 Tres detalles que hacen que salga bien:
 

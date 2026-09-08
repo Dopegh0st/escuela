@@ -11,7 +11,8 @@ export const SITE = {
   description:
     'Clases en vivo de inglés, música y programación con profesores titulados. ' +
     'Grupos pequeños, horarios flexibles y precios en dólares. Hecho en Ecuador.',
-  url: 'https://escuela.example',
+  /** TODO: cambiar al dominio propio cuando se registre. */
+  url: 'https://escuela.dopeghostseo.workers.dev',
   locale: 'es-EC',
   /** TODO: replace with the real business number. */
   whatsapp: '593000000000',

@@ -2,7 +2,7 @@
 titulo: "Qué computadora necesitas de verdad para aprender a programar"
 resumen: "Con precios reales de Ecuador, revisados esta semana. Una laptop de $350 te sirve igual que una gamer de $1.956, y aquí está el porqué."
 autor: "Daniel"
-fecha: 2026-09-09
+fecha: 2026-09-06
 categoria: "programacion"
 minutosLectura: 7
 color: "#5b4bc4"

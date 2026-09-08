@@ -2,7 +2,7 @@
 titulo: "Tu primera guitarra en Ecuador: qué comprar y cuánto cuesta"
 resumen: "Precios reales de septiembre de 2026, los siete puntos que hay que revisar antes de pagar, y qué accesorios son puro cuento. Sirve aunque nunca tomes una clase."
 autor: "David"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "musica"
 minutosLectura: 7
 color: "#14897c"
@@ -166,4 +166,4 @@ Si a los quince días la sigues agarrando, compra. Si no, te ahorraste ochenta d
 Esa última regla vale más que cualquier marca. Y si ya tienes guitarra y aun así
 se te está haciendo cuesta arriba, el problema casi nunca es el instrumento: lo
 escribí aparte en [por qué casi todos dejan la guitarra en el primer
-mes](/blog/por-que-se-abandona-la-guitarra-primer-mes).
+mes](/blog/por-que-se-abandona-la-guitarra-primer-mes/).

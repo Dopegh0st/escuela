@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 // The adapter dropped Pages support in v13; Cloudflare's own docs now say
 // "Start new projects with Workers".
 export default defineConfig({
-  site: 'https://escuela.example',           // replaced once the domain is registered
+  site: 'https://escuela.dopeghostseo.workers.dev', // provisional; cambiar al dominio propio cuando se registre
   output: 'static',                          // marketing/catalogue prerendered; app routes opt in with prerender=false
   adapter: cloudflare({
     imageService: 'compile',                 // no sharp on workerd; optimise at build time

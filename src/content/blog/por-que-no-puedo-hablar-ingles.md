@@ -2,7 +2,7 @@
 titulo: "Doce años de inglés en el colegio y todavía no puedes hablarlo"
 resumen: "No es que seas malo para los idiomas. En doce años de colegio hablaste inglés unos pocos minutos al año, y eso explica casi todo lo demás."
 autor: "David"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "ingles"
 minutosLectura: 6
 color: "#e0522c"

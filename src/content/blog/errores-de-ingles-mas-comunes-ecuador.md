@@ -2,7 +2,7 @@
 titulo: "15 errores de inglés que casi todos cometemos en Ecuador"
 resumen: "Pronunciación, gramática y falsos amigos, con la corrección al lado. Están ordenados: los cinco primeros son los que de verdad rompen la comunicación."
 autor: "David"
-fecha: 2026-09-10
+fecha: 2026-09-07
 categoria: "ingles"
 minutosLectura: 7
 color: "#e0522c"

@@ -2,7 +2,7 @@
 titulo: "Cómo empezar a programar desde cero sin gastar un dólar"
 resumen: "No necesitas pagar nada el primer mes. Aquí está lo que sí sirve, lo que no, y un plan de cuatro semanas con las horas contadas."
 autor: "Daniel"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "programacion"
 minutosLectura: 7
 color: "#5b4bc4"

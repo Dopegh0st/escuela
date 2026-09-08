@@ -2,7 +2,7 @@
 titulo: "A qué edad debe hablar un niño: qué esperar de 1 a 6 años"
 resumen: "Rangos por edad en palabras simples, los mitos que más confunden y cuándo conviene que lo vea un profesional titulado. El rango normal es más ancho de lo que crees."
 autor: "Elena"
-fecha: 2026-09-08
+fecha: 2026-09-05
 categoria: "apoyo-escolar"
 minutosLectura: 8
 color: "#c98a10"

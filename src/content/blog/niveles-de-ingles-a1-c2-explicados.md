@@ -2,7 +2,7 @@
 titulo: "Niveles de inglés A1 a C2: qué significan y cuál te van a pedir"
 resumen: "Qué puedes hacer de verdad en cada nivel, cuántas horas cuesta cada salto, quién te pide qué en Ecuador y cómo medir tu nivel gratis hoy mismo."
 autor: "David"
-fecha: 2026-09-09
+fecha: 2026-09-06
 categoria: "ingles"
 minutosLectura: 8
 color: "#e0522c"
